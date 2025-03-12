@@ -1,6 +1,11 @@
 import React from 'react';
 import CourseList from '../components/course/CourseList';
+import styled from 'styled-components';
 import Header from '../components/common/Header';
+
+const MainContainer = styled.div`
+  padding: 20px;
+`;
 
 const CoursePage = () => {
   const courses = [
@@ -9,11 +14,11 @@ const CoursePage = () => {
   ];
 
   return (
-    <div>
+    <MainContainer>
         <Header />
       <h2>Courses</h2>
       <CourseList courses={courses} />
-    </div>
+    </MainContainer>
   );
 };
 

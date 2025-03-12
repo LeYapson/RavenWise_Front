@@ -1,12 +1,18 @@
 import React from 'react';
+import styled from 'styled-components';
 import Header from '../components/common/Header';
+
+const MainContainer = styled.div`
+  padding: 20px;
+`;
 
 const HomePage = () => {
   return (
-    <div>
+    <MainContainer>
       <Header />
       <h2>Welcome to RavenWise</h2>
-    </div>
+      <p>This is the homepage content.</p>
+    </MainContainer>
   );
 };
 
