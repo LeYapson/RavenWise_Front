@@ -2,8 +2,9 @@ import React from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import Header from '../components/common/Header';
+import Footer from '../components/common/Footer';
 import RavenWiseLogo from '../assets/images/Ravenwise.png';
-import BannerBackground from '../assets/images/banner-background-image.webp';
+import BannerBackground from '../assets/images/banner-background.jpg';
 
 const HeroSection = styled.section`
   display: flex;
@@ -337,6 +338,7 @@ const HomePage = () => {
             </Step>
           </HowItWorksSteps>
         </Section>
+        <Footer />
       </main>
     </>
   );

@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import Header from '../components/common/Header';
+import Footer from '../components/common/Footer';
 import { Link } from 'react-router-dom';
 
 const MainContainer = styled.div`
@@ -416,7 +417,7 @@ const CoursePage = () => {
     <>
       <Header />
       <MainContainer>
-        <PageTitle>Explorez nos cours</PageTitle>
+        <PageTitle>Explorez nos cours</PageTitle> <br />
         
         {/* Section des cours en vedette */}
         <SectionTitle>Cours du jour</SectionTitle>
@@ -475,6 +476,7 @@ const CoursePage = () => {
           ))}
         </CoursesList>
       </MainContainer>
+      <Footer />
     </>
   );
 };

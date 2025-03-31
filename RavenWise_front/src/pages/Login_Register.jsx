@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/common/Header';
+import Footer from '../components/common/Footer';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -526,6 +527,7 @@ const Login_Register = () => {
           </FormContainer>
         </FormSection>
       </MainContainer>
+      <Footer />
     </PageContainer>
   );
 };

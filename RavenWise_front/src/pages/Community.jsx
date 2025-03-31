@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import Header from '../components/common/Header';
+import Footer from '../components/common/Footer';
 import { Link } from 'react-router-dom';
 
 const MainContainer = styled.div`
@@ -849,6 +850,7 @@ const Community = () => {
         
         {renderContent()}
       </MainContainer>
+      <Footer />
     </>
   );
 };

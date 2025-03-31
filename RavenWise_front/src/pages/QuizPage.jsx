@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import Header from '../components/common/Header';
+import Footer from '../components/common/Footer';
 import { Link } from 'react-router-dom';
 
 const MainContainer = styled.div`
@@ -549,7 +550,7 @@ const QuizPage = () => {
     <>
       <Header />
       <MainContainer>
-        <PageTitle>Quiz & Défis</PageTitle>
+        <PageTitle>Quiz & Défis</PageTitle> <br/>
         
         {/* Section des quiz en vedette */}
         <SectionTitle>Quiz à la une</SectionTitle>
@@ -643,6 +644,7 @@ const QuizPage = () => {
           ))}
         </QuizList>
       </MainContainer>
+      <Footer />
     </>
   );
 };
