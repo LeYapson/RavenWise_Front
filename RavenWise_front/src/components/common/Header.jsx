@@ -100,19 +100,26 @@ const AuthLinks = styled.div`
   }
 `;
 
-
 const Logo = styled.img`
   width: 50px; /* Ajustez cette valeur selon vos besoins */
   height: auto;
 `;
 
-const SiteName = styled(Link)`
-  color: #FDC758;
+const SiteNameContainer = styled(Link)`
   text-decoration: none;
   font-family: 'Zen Dots', sans-serif;
   font-size: 24px;
   font-weight: bold;
   margin-left: 10px;
+  display: flex;
+`;
+
+const RavenText = styled.span`
+  color: white;
+`;
+
+const WiseText = styled.span`
+  color: #FDC758;
 `;
 
 const Header = () => {
@@ -121,7 +128,10 @@ const Header = () => {
       <GlobalStyles />
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <Logo src={RavenShape} alt="RavenWise Logo" />
-        <SiteName to="/">RavenWise</SiteName>
+        <SiteNameContainer to="/">
+          <RavenText>RavenWise</RavenText>
+          
+        </SiteNameContainer>
       </div>
       <Nav>
         <ul>
