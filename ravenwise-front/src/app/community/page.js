@@ -213,7 +213,7 @@ const Community = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             {activeMembers.map(member => (
               <Link key={member.id} href={`/community/members/${member.id}`} className="bg-white/10 backdrop-blur-md border border-gray-700 rounded-lg p-4 text-decoration-none shadow-md hover:shadow-lg transition-transform duration-300 hover:translate-y-[-5px]">
-                <div className="text-2xl mb-3 text-blue-500 flex justify-center">👤</div>
+                <div className="text-2xl mb-3 text-yellow-500 flex justify-center">👤</div>
                 <h3 className="text-lg mb-2 text-white">{member.name}</h3>
                 <p className="text-gray-300 mb-2">{member.title}</p>
                 <p className="text-gray-300">{member.bio}</p>
@@ -258,7 +258,7 @@ const Community = () => {
                     <div className="w-14 h-14 bg-cover bg-center rounded-md" style={{ backgroundImage: `url(${project.logo})` }}></div>
                     <div>
                       <h3 className="text-lg mb-1 text-white">{project.title}</h3>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${project.status === "En cours" ? "bg-blue-500 text-blue-500" : project.status === "Terminé" ? "bg-green-500 text-green-500" : "bg-yellow-500 text-yellow-500"}`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${project.status === "En cours" ? "bg-yellow-300 text-yellow-300" : project.status === "Terminé" ? "bg-green-500 text-green-500" : "bg-yellow-500 text-yellow-500"}`}>
                         {project.status}
                       </span>
                     </div>
@@ -298,25 +298,25 @@ const Community = () => {
         <div className="flex border-b border-gray-700 mb-6 overflow-x-auto">
           <button
             onClick={() => setActiveTab('discussions')}
-            className={`px-4 py-2 text-lg ${activeTab === 'discussions' ? 'text-blue-500 font-semibold border-b-2 border-blue-500' : 'text-gray-400'}`}
+            className={`px-4 py-2 text-lg ${activeTab === 'discussions' ? 'text-yellow-300 font-semibold border-b-2 border-yellow-300' : 'text-gray-400'}`}
           >
             Discussions
           </button>
           <button
             onClick={() => setActiveTab('members')}
-            className={`px-4 py-2 text-lg ${activeTab === 'members' ? 'text-blue-500 font-semibold border-b-2 border-blue-500' : 'text-gray-400'}`}
+            className={`px-4 py-2 text-lg ${activeTab === 'members' ? 'text-yellow-300 font-semibold border-b-2 border-yellow-300' : 'text-gray-400'}`}
           >
             Membres Actifs
           </button>
           <button
             onClick={() => setActiveTab('events')}
-            className={`px-4 py-2 text-lg ${activeTab === 'events' ? 'text-blue-500 font-semibold border-b-2 border-blue-500' : 'text-gray-400'}`}
+            className={`px-4 py-2 text-lg ${activeTab === 'events' ? 'text-yellow-300 font-semibold border-b-2 border-yellow-300' : 'text-gray-400'}`}
           >
             Événements
           </button>
           <button
             onClick={() => setActiveTab('projects')}
-            className={`px-4 py-2 text-lg ${activeTab === 'projects' ? 'text-blue-500 font-semibold border-b-2 border-blue-500' : 'text-gray-400'}`}
+            className={`px-4 py-2 text-lg ${activeTab === 'projects' ? 'text-yellow-300 font-semibold border-b-2 border-yellow-300' : 'text-gray-400'}`}
           >
             Projets Collaboratifs
           </button>
@@ -326,7 +326,7 @@ const Community = () => {
           <input
             type="text"
             placeholder={`Rechercher des ${activeTab === 'discussions' ? 'discussions' : activeTab === 'members' ? 'membres' : activeTab === 'events' ? 'événements' : 'projets'}...`}
-            className="w-full p-3 bg-white/10 backdrop-blur-md border border-gray-700 rounded-md text-gray-300 focus:outline-none focus:border-blue-500"
+            className="w-full p-3 bg-white/10 backdrop-blur-md border border-gray-700 rounded-md text-gray-300 focus:outline-none focus:border-yellow-300"
           />
           <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</div>
         </div>

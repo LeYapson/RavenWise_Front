@@ -140,7 +140,7 @@ const CoursePage = () => {
         <h1 className="text-4xl text-center mb-6">Explorez nos cours</h1>
 
         {/* Section des cours en vedette */}
-        <h2 className="text-2xl mb-4 relative after:content-[''] after:absolute after:left-0 after:bottom-[-8px] after:w-15 after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-purple-500 after:rounded-full">
+        <h2 className="text-2xl mb-4 relative after:content-[''] after:absolute after:left-0 after:bottom-[-8px] after:w-15 after:h-1 after:bg-[#ca9e46] after:rounded-full">
           Cours du jour
         </h2>
         <div className="mb-8">
@@ -155,7 +155,7 @@ const CoursePage = () => {
               ></div>
               <div className="flex-1 flex flex-col justify-between">
                 <div>
-                  <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold uppercase px-3 py-1 rounded-full mb-3">
+                  <span className="bg-[#ca9e46] text-white text-xs font-bold uppercase px-3 py-1 rounded-full mb-3">
                     En vedette
                   </span>
                   <h3 className="text-xl mb-2">{course.title}</h3>
@@ -166,7 +166,7 @@ const CoursePage = () => {
                     <span>🏆 {course.level}</span>
                   </div>
                 </div>
-                <Link href={`/courses/${course.id}`} className="mt-4 inline-block bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-2 rounded-md shadow-md hover:shadow-lg transition-transform duration-300 hover:translate-y-[-2px]">
+                <Link href={`/courses/${course.id}`} className="mt-4 inline-block bg-[#ca9e46] text-white px-6 py-2 rounded-md shadow-md hover:shadow-lg transition-transform duration-300 hover:translate-y-[-2px]">
                   Commencer le cours
                 </Link>
               </div>
@@ -175,7 +175,7 @@ const CoursePage = () => {
         </div>
 
         {/* Section des catégories */}
-        <h2 className="text-2xl mb-4 relative after:content-[''] after:absolute after:left-0 after:bottom-[-8px] after:w-15 after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-purple-500 after:rounded-full">
+        <h2 className="text-2xl mb-4 relative after:content-[''] after:absolute after:left-0 after:bottom-[-8px] after:w-15 after:h-1 after:bg-[#ca9e46] after:rounded-full">
           Explorez par univers
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -194,7 +194,7 @@ const CoursePage = () => {
         </div>
 
         {/* Section des cours populaires */}
-        <h2 className="text-2xl mb-4 relative after:content-[''] after:absolute after:left-0 after:bottom-[-8px] after:w-15 after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-purple-500 after:rounded-full">
+        <h2 className="text-2xl mb-4 relative after:content-[''] after:absolute after:left-0 after:bottom-[-8px] after:w-15 after:h-1 after:bg-[#ca9e46] after:rounded-full">
           Cours populaires
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
