@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import RavenShape from '../../assets/images/Raven_Shape.png';
+import RavenShape from '../../assets/images/Raven_Shape_black.png';
 
 const Header = () => {
   return (
