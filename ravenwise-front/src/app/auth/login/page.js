@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import AuthLayout from '../components/AuthLayout';
 import AuthForm from '../components/authForm';
 import { useRouter } from 'next/navigation';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../../../firebase';
 
 const LoginPage = () => {
   const [activeTab, setActiveTab] = useState('login');
@@ -13,6 +15,7 @@ const LoginPage = () => {
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
 
   const router = useRouter();
 
@@ -50,17 +53,42 @@ const LoginPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setAuthError('');
 
     if (validateForm()) {
       setIsLoading(true);
-
-      // Simulate API call
-      setTimeout(() => {
-        setIsLoading(false);
+      
+      try {
+        // Connexion avec Firebase
+        await signInWithEmailAndPassword(auth, formData.email, formData.password);
+        
+        // Redirection vers la page dashboard après connexion réussie
         router.push('/dashboard');
-      }, 1500);
+      } catch (error) {
+        // Gestion des erreurs de Firebase
+        let errorMessage = "Une erreur s'est produite lors de la connexion.";
+        
+        switch (error.code) {
+          case 'auth/invalid-credential':
+            errorMessage = "Identifiants invalides. Veuillez vérifier votre email et mot de passe.";
+            break;
+          case 'auth/user-not-found':
+            errorMessage = "Aucun utilisateur trouvé avec cet email.";
+            break;
+          case 'auth/wrong-password':
+            errorMessage = "Mot de passe incorrect.";
+            break;
+          case 'auth/too-many-requests':
+            errorMessage = "Trop de tentatives. Veuillez réessayer plus tard.";
+            break;
+        }
+        
+        setAuthError(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -74,6 +102,7 @@ const LoginPage = () => {
         handleChange={handleChange}
         handleSubmit={handleSubmit}
         setActiveTab={setActiveTab}
+        authError={authError}
       />
     </AuthLayout>
   );

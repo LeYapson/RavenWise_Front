@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import AuthLayout from '../components/AuthLayout';
 import AuthForm from '../components/authForm';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth } from '../../../firebase';
 
 const RegisterPage = () => {
   const [activeTab, setActiveTab] = useState('register');
@@ -13,7 +15,8 @@ const RegisterPage = () => {
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-
+  const [authError, setAuthError] = useState('');
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -59,22 +62,59 @@ const RegisterPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setAuthError('');
 
     if (validateForm()) {
       setIsLoading(true);
-
-      // Simulate API call
-      setTimeout(() => {
-        setIsLoading(false);
-        setActiveTab('login');
-        setFormData({
-          ...formData,
-          confirmPassword: '',
-          name: ''
+      
+      try {
+        // Création du compte avec Firebase
+        const userCredential = await createUserWithEmailAndPassword(
+          auth, 
+          formData.email, 
+          formData.password
+        );
+        
+        // Mise à jour du profil pour ajouter le nom d'utilisateur
+        await updateProfile(userCredential.user, {
+          displayName: formData.name
         });
-      }, 1500);
+        
+        // Succès de l'inscription
+        setRegistrationSuccess(true);
+        
+        // Rediriger vers login après un court délai
+        setTimeout(() => {
+          setActiveTab('login');
+          setFormData({
+            ...formData,
+            confirmPassword: '',
+            password: ''
+          });
+        }, 2000);
+        
+      } catch (error) {
+        // Gestion des erreurs Firebase
+        let errorMessage = "Une erreur s'est produite lors de l'inscription.";
+        
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            errorMessage = "Cet email est déjà utilisé par un autre compte.";
+            break;
+          case 'auth/invalid-email':
+            errorMessage = "Format d'email invalide.";
+            break;
+          case 'auth/weak-password':
+            errorMessage = "Le mot de passe est trop faible.";
+            break;
+        }
+        
+        setAuthError(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -88,6 +128,8 @@ const RegisterPage = () => {
         handleChange={handleChange}
         handleSubmit={handleSubmit}
         setActiveTab={setActiveTab}
+        authError={authError}
+        registrationSuccess={registrationSuccess}
       />
     </AuthLayout>
   );
