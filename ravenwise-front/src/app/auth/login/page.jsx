@@ -1,12 +1,16 @@
 "use client";
 import React, { useState } from 'react';
-import AuthLayout from '../components/AuthLayout';
-import AuthForm from '../components/authForm';
-import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../../../firebase';
+import { useRouter, useSearchParams } from 'next/navigation';
+import AuthLayout from '../../../components/auth/AuthLayout';
+import AuthForm from '../../../components/auth/AuthForm';
+import { useAuth } from '../../../context/AuthContext';
 
 const LoginPage = () => {
+  const { login } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get('from') || '/dashboard';
+
   const [activeTab, setActiveTab] = useState('login');
   const [formData, setFormData] = useState({
     email: '',
@@ -16,8 +20,6 @@ const LoginPage = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState('');
-
-  const router = useRouter();
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -61,13 +63,9 @@ const LoginPage = () => {
       setIsLoading(true);
       
       try {
-        // Connexion avec Firebase
-        await signInWithEmailAndPassword(auth, formData.email, formData.password);
-        
-        // Redirection vers la page dashboard après connexion réussie
-        router.push('/dashboard');
+        await login(formData.email, formData.password);
+        router.push(from);
       } catch (error) {
-        // Gestion des erreurs de Firebase
         let errorMessage = "Une erreur s'est produite lors de la connexion.";
         
         switch (error.code) {

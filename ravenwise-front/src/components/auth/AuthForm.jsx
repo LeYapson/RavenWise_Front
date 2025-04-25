@@ -1,7 +1,21 @@
-import React from 'react';
-import Link from 'next/link';
-import { FaGoogle, FaFacebook, FaEye, FaEyeSlash } from 'react-icons/fa';
+/**
+ * Composant AuthForm - Formulaire d'authentification réutilisable
+ * Gère à la fois la connexion et l'inscription
+ * 
+ * @param {string} activeTab - Onglet actif ('login' ou 'register')
+ * @param {object} formData - Données du formulaire
+ * @param {object} errors - Erreurs de validation
+ * @param {boolean} isLoading - État de chargement
+ * @param {function} handleChange - Gestionnaire de changement des champs
+ * @param {function} handleSubmit - Gestionnaire de soumission du formulaire
+ * @param {function} setActiveTab - Fonction pour changer d'onglet
+ * @param {string} authError - Message d'erreur d'authentification
+ * @param {boolean} registrationSuccess - Indique si l'inscription a réussi
+ */
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { FaEye, FaEyeSlash, FaGoogle, FaFacebook } from 'react-icons/fa';
+import Link from 'next/link';
 
 const AuthForm = ({
   activeTab,
@@ -14,19 +28,13 @@ const AuthForm = ({
   authError,
   registrationSuccess
 }) => {
-  const [showPassword, setShowPassword] = React.useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
-
-  // Animation pour le changement de tab
-  const tabVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
-  };
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   return (
     <div className="space-y-6">
-      {/* Tabs */}
-      <div className="flex border-b border-gray-700 mb-8">
+      {/* Onglets */}
+      <div className="flex border-b border-gray-700">
         <button
           className={`pb-3 px-4 text-lg font-medium relative ${
             activeTab === 'login'
@@ -68,16 +76,14 @@ const AuthForm = ({
         </button>
       </div>
 
+      {/* Message de succès d'inscription */}
       <motion.div
-        key={activeTab}
-        initial="hidden"
-        animate="visible"
-        variants={tabVariants}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+        className="space-y-6"
       >
-        <h2 className="text-2xl font-bold mb-6 text-white">
-          {activeTab === 'login' ? 'Connectez-vous à votre compte' : 'Créez votre compte'}
-        </h2>
-
         {registrationSuccess && (
           <div className="bg-green-500/10 border border-green-500/30 text-green-400 p-4 rounded-lg mb-6 flex items-center">
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -90,16 +96,16 @@ const AuthForm = ({
         {authError && (
           <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-lg mb-6 flex items-center">
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"></path>
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"></path>
             </svg>
             {authError}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit}>
           {/* Champ nom pour l'inscription */}
           {activeTab === 'register' && (
-            <div>
+            <div className="mb-4">
               <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1.5">
                 Nom complet
               </label>
@@ -107,7 +113,7 @@ const AuthForm = ({
                 type="text"
                 id="name"
                 name="name"
-                value={formData.name || ''}
+                value={formData.name}
                 onChange={handleChange}
                 placeholder="Entrez votre nom"
                 className={`w-full bg-[#182133] border ${
@@ -121,7 +127,7 @@ const AuthForm = ({
           )}
 
           {/* Champ email */}
-          <div>
+          <div className="mb-4">
             <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1.5">
               Adresse email
             </label>
@@ -142,7 +148,7 @@ const AuthForm = ({
           </div>
 
           {/* Champ mot de passe */}
-          <div>
+          <div className="mb-4">
             <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1.5">
               Mot de passe
             </label>
@@ -173,7 +179,7 @@ const AuthForm = ({
 
           {/* Confirmation de mot de passe pour l'inscription */}
           {activeTab === 'register' && (
-            <div>
+            <div className="mb-4">
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-1.5">
                 Confirmer le mot de passe
               </label>
@@ -182,7 +188,7 @@ const AuthForm = ({
                   type={showConfirmPassword ? "text" : "password"}
                   id="confirmPassword"
                   name="confirmPassword"
-                  value={formData.confirmPassword || ''}
+                  value={formData.confirmPassword}
                   onChange={handleChange}
                   placeholder="Confirmez votre mot de passe"
                   className={`w-full bg-[#182133] border ${
@@ -205,7 +211,7 @@ const AuthForm = ({
 
           {/* Option "Se souvenir de moi" et mot de passe oublié pour la connexion */}
           {activeTab === 'login' && (
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-6">
               <div className="flex items-center">
                 <input
                   id="rememberMe"
@@ -229,7 +235,7 @@ const AuthForm = ({
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-[#ca9e46] to-[#d4af61] text-white py-3 rounded-lg font-medium shadow-lg hover:shadow-[#ca9e46]/20 transform transition-all duration-300 hover:translate-y-[-2px] hover:brightness-110 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full bg-gradient-to-r from-[#ca9e46] to-[#d4af61] text-white py-3 rounded-lg font-medium shadow-lg hover:shadow-[#ca9e46]/20 transform transition-all duration-300 hover:translate-y-[-2px] hover:brightness-110 disabled:opacity-70 disabled:cursor-not-allowed mt-6"
           >
             {isLoading ? (
               <div className="flex items-center justify-center">

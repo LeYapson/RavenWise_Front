@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import AuthLayout from '../components/AuthLayout';
 import AuthForm from '../components/authForm';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '../../../firebase';
+import { auth } from '../../../../firebase/firebase';
 
 const RegisterPage = () => {
   const [activeTab, setActiveTab] = useState('register');

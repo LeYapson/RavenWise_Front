@@ -1,7 +1,12 @@
+/**
+ * Composant AuthLayout - Layout pour les pages d'authentification
+ * 
+ * @param {ReactNode} children - Contenu de la page d'authentification
+ */
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import RavenWiseLogo from '../../../assets/images/Ravenwise.png';
+import RavenWiseLogo from '../../assets/images/Ravenwise.png';
 
 const AuthLayout = ({ children }) => {
   return (
