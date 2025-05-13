@@ -1,21 +1,16 @@
-/**
- * Composant Card - Une carte réutilisable pour différentes sections du site
- * 
- * @param {string} className - Classes CSS supplémentaires
- * @param {ReactNode} children - Contenu de la carte
- * @param {string} bgColor - Couleur de fond (par défaut: #182b4a)
- */
-import React from 'react';
+import React from "react";
 
-const Card = ({ className, children, bgColor = "#182b4a" }) => {
+export default function Card({ children, title, className = "" }) {
   return (
-    <div 
-      className={`p-6 rounded-lg shadow-lg ${className}`} 
-      style={{ backgroundColor: bgColor }}
-    >
-      {children}
+    <div className={`bg-[#182b4a] rounded-lg border border-gray-800 overflow-hidden shadow-lg ${className}`}>
+      {title && (
+        <div className="px-6 py-4 border-b border-gray-800">
+          <h2 className="text-lg font-medium text-white">{title}</h2>
+        </div>
+      )}
+      <div className="p-6 text-white">
+        {children}
+      </div>
     </div>
   );
-};
-
-export default Card;
+}

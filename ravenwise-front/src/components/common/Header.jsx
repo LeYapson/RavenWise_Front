@@ -7,11 +7,16 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useClerkAuth } from '../../context/clerkContext';
+import { useUser } from "@clerk/nextjs";
 import { UserButton } from "@clerk/nextjs";
 import RavenWiseLogo from '../../assets/images/Ravenwise.png';
 
 const Header = () => {
   const { isAuthenticated } = useClerkAuth();
+  const { user } = useUser();
+  
+  // Vérifier si l'utilisateur est admin via les métadonnées publiques
+  const isAdmin = user?.publicMetadata?.role === 'admin';
   
   return (
     <header className="bg-[#0F1B2A] py-4 px-6 shadow-md">
@@ -36,6 +41,15 @@ const Header = () => {
                 <li className="mx-4">
                   <Link href="/community" className="text-white font-bold no-underline">Communauté</Link>
                 </li>
+                
+                {/* Lien Admin visible uniquement pour les administrateurs */}
+                {isAdmin && (
+                  <li className="mx-4">
+                    <Link href="/admin" className="text-[#FDC758] font-bold no-underline">
+                      Administration
+                    </Link>
+                  </li>
+                )}
               </>
             )}
           </ul>
@@ -43,7 +57,15 @@ const Header = () => {
         
         <div className="flex items-center">
           {isAuthenticated ? (
-            <UserButton afterSignOutUrl="/" />
+            <div className="flex items-center gap-3">
+              {/* Badge d'administrateur */}
+              {isAdmin && (
+                <span className="bg-[#FDC758] text-[#0F1B2A] text-xs font-bold px-2 py-1 rounded-full">
+                  Admin
+                </span>
+              )}
+              <UserButton afterSignOutUrl="/" />
+            </div>
           ) : (
             <Link href="/sign-in" className="text-[#FDC758] font-bold border-2 border-[#FDC758] px-4 py-2 rounded-md mr-2 transition-all duration-300 hover:bg-[#FDC758] hover:text-[#0F1B2A]">
               Connexion

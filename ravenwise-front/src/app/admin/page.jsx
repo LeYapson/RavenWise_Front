@@ -1,87 +1,136 @@
-// src/app/admin/page.jsx
 "use client";
-import React from "react";
-import AdminStats from "../../components/admin/AdminStats";
-import DataTable from "../../components/admin/DataTable";
+import React, { useState, useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import AdminLayout from "../../components/admin/AdminLayout";
 import Card from "../../components/common/Card";
-import SectionTitle from "../../components/common/SectionTitle";
 
 export default function AdminDashboard() {
-  // Données simulées pour le dashboard admin
-  const statsData = {
-    totalUsers: 1425,
-    activeUsers: 892,
-    totalCourses: 47,
-    totalQuizzes: 156,
-    revenueMonth: "3,720€",
-    enrollmentsWeek: 128,
-  };
+  const { user, isLoaded } = useUser();
+  const router = useRouter();
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalCourses: 0,
+    activeUsers: 0,
+    completedCourses: 0
+  });
+  const [loading, setLoading] = useState(true);
 
-  const recentUsers = [
-    { id: 1, name: "Sophie Martin", email: "sophie@example.com", joinedAt: "Il y a 2 heures", coursesEnrolled: 3 },
-    { id: 2, name: "Thomas Dubois", email: "thomas@example.com", joinedAt: "Il y a 6 heures", coursesEnrolled: 1 },
-    { id: 3, name: "Emma Lefebvre", email: "emma@example.com", joinedAt: "Il y a 1 jour", coursesEnrolled: 5 },
-  ];
+  // Vérifier si l'utilisateur est administrateur
+  useEffect(() => {
+    if (isLoaded) {
+      const isAdmin = user?.publicMetadata?.role === 'admin';
+      if (!isAdmin) {
+        router.push('/dashboard');
+      } else {
+        // Charger les statistiques (simulé ici)
+        setTimeout(() => {
+          setStats({
+            totalUsers: 152,
+            totalCourses: 24,
+            activeUsers: 87,
+            completedCourses: 435
+          });
+          setLoading(false);
+        }, 1000);
+      }
+    }
+  }, [isLoaded, user, router]);
 
-  const coursePerformance = [
-    { id: 1, title: "JavaScript Moderne", enrollments: 342, completionRate: 68, rating: 4.7 },
-    { id: 2, title: "HTML & CSS Fondamentaux", enrollments: 512, completionRate: 74, rating: 4.8 },
-    { id: 3, title: "React pour débutants", enrollments: 287, completionRate: 62, rating: 4.5 },
-  ];
+  if (loading) {
+    return <div className="flex justify-center items-center min-h-screen bg-[#0c1524] text-white">Chargement...</div>;
+  }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Dashboard Administration</h1>
-      
-      <AdminStats stats={statsData} />
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Utilisateurs récents */}
-        <Card>
-          <div className="flex justify-between items-center mb-4">
-            <SectionTitle title="Utilisateurs récents" />
-            <a href="/admin/users" className="text-[#FDC758] hover:underline text-sm">
-              Voir tous les utilisateurs
-            </a>
-          </div>
-          
-          <DataTable 
-            data={recentUsers}
-            columns={[
-              { key: 'name', label: 'Nom' },
-              { key: 'email', label: 'Email' },
-              { key: 'joinedAt', label: 'Inscrit' },
-              { key: 'coursesEnrolled', label: 'Cours' }
-            ]}
-            actions={[
-              { label: 'Voir', handler: (user) => window.location.href = `/admin/users/${user.id}` }
-            ]}
-          />
-        </Card>
+    <AdminLayout>
+      <div className="p-6">
+        <h1 className="text-2xl font-bold text-white mb-6">Tableau de bord administrateur</h1>
         
-        {/* Performance des cours */}
-        <Card>
-          <div className="flex justify-between items-center mb-4">
-            <SectionTitle title="Performance des cours" />
-            <a href="/admin/courses" className="text-[#FDC758] hover:underline text-sm">
-              Voir tous les cours
-            </a>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <StatCard title="Utilisateurs totaux" value={stats.totalUsers} icon="👥" />
+          <StatCard title="Utilisateurs actifs" value={stats.activeUsers} icon="👤" />
+          <StatCard title="Cours disponibles" value={stats.totalCourses} icon="📚" />
+          <StatCard title="Cours complétés" value={stats.completedCourses} icon="🎓" />
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card title="Actions rapides">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <ActionButton 
+                label="Créer un cours" 
+                href="/admin/courses/create" 
+                icon="📝"
+                color="bg-blue-600"
+              />
+              <ActionButton 
+                label="Gérer les utilisateurs" 
+                href="/admin/users" 
+                icon="👥"
+                color="bg-green-600"
+              />
+              <ActionButton 
+                label="Modérer le forum" 
+                href="/admin/forum" 
+                icon="💬"
+                color="bg-yellow-600"
+              />
+              <ActionButton 
+                label="Gérer les quiz" 
+                href="/admin/quiz" 
+                icon="❓"
+                color="bg-purple-600"
+              />
+            </div>
+          </Card>
           
-          <DataTable 
-            data={coursePerformance}
-            columns={[
-              { key: 'title', label: 'Titre' },
-              { key: 'enrollments', label: 'Inscriptions' },
-              { key: 'completionRate', label: 'Complétion %' },
-              { key: 'rating', label: 'Note' }
-            ]}
-            actions={[
-              { label: 'Éditer', handler: (course) => window.location.href = `/admin/courses/${course.id}` }
-            ]}
-          />
-        </Card>
+          <Card title="Activité récente">
+            <div className="space-y-4 mt-4">
+              {[
+                { user: "Sophie Martin", action: "a complété le cours HTML & CSS", time: "Il y a 2 heures" },
+                { user: "Thomas Dupont", action: "s'est inscrit à 3 nouveaux cours", time: "Il y a 5 heures" },
+                { user: "Emma Lefebvre", action: "a publié une nouvelle discussion", time: "Hier" },
+                { user: "Lucas Bernard", action: "a signalé un problème dans un quiz", time: "Il y a 2 jours" },
+              ].map((activity, index) => (
+                <div key={index} className="bg-[#1D2D40] p-3 rounded-md flex justify-between items-center">
+                  <div>
+                    <span className="font-medium text-[#FDC758]">{activity.user}</span>
+                    <span className="text-gray-300"> {activity.action}</span>
+                  </div>
+                  <span className="text-xs text-gray-400">{activity.time}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+    </AdminLayout>
+  );
+}
+
+// Composant pour les cartes de statistiques
+function StatCard({ title, value, icon }) {
+  return (
+    <div className="bg-[#182b4a] rounded-lg p-4 border border-gray-700">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-gray-400 text-sm">{title}</h3>
+          <p className="text-2xl font-bold text-white">{value}</p>
+        </div>
+        <span className="text-3xl">{icon}</span>
       </div>
     </div>
+  );
+}
+
+// Composant pour les boutons d'action
+function ActionButton({ label, href, icon, color }) {
+  return (
+    <a 
+      href={href} 
+      className={`${color} hover:opacity-90 transition-all rounded-lg p-4 flex items-center justify-between`}
+    >
+      <span className="font-medium text-white">{label}</span>
+      <span className="text-xl">{icon}</span>
+    </a>
   );
 }
