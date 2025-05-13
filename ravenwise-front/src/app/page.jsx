@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../context/AuthContext';
+import { useClerkAuth } from '../context/clerkContext';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
 import HeroSection from '../components/landing/HeroSection';
@@ -9,7 +9,7 @@ import FeaturesSection from '../components/landing/FeaturesSection';
 import TestimonialsSection from '../components/landing/TestimonialsSection';
 
 export default function HomePage() {
-  const { isAuthenticated, loading } = useAuth();
+  const { currentUser, loading, isAuthenticated, logout } = useClerkAuth();
   const router = useRouter();
   
   // Redirection vers le dashboard si l'utilisateur est connecté

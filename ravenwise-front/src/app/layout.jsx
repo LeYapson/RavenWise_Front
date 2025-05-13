@@ -1,23 +1,25 @@
-import { Inter } from 'next/font/google'
-import './globals.css'
-import { AuthProvider } from '../context/AuthContext';
+import { ClerkProvider } from '@clerk/nextjs';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { ClerkProvider as CustomClerkProvider } from '../context/clerkContext';
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'RavenWise | la plateforme d\'apprentissage adaptatif',
   description: 'RavenWise est une plateforme d\'apprentissage innovante qui utilise l\'intelligence artificielle pour personnaliser votre parcours éducatif et vous aider à atteindre vos objectifs.',
-  keywords: 'RavenWise, apprentissage adaptatif, IA, plateforme d\'apprentissage, cours en ligne, communauté',
-}
+};
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="fr">
-      <body className={inter.className}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
-      </body>
-    </html>
-  )
+    <ClerkProvider>
+      <html lang="fr">
+        <body className={inter.className}>
+          <CustomClerkProvider>
+            {children}
+          </CustomClerkProvider>
+        </body>
+      </html>
+    </ClerkProvider>
+  );
 }

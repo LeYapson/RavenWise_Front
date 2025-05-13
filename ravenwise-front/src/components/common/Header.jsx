@@ -6,11 +6,12 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useAuth } from '../../context/AuthContext';
+import { useClerkAuth } from '../../context/clerkContext';
+import { UserButton } from "@clerk/nextjs";
 import RavenWiseLogo from '../../assets/images/Ravenwise.png';
 
 const Header = () => {
-  const { currentUser, logout, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useClerkAuth();
   
   return (
     <header className="bg-[#0F1B2A] py-4 px-6 shadow-md">
@@ -41,32 +42,12 @@ const Header = () => {
         </nav>
         
         <div className="flex items-center">
-          {!isAuthenticated ? (
-            // Afficher les boutons de connexion/inscription si non connecté
-            <>
-              <Link href="/auth/login" className="text-[#FDC758] font-bold border-2 border-[#FDC758] px-4 py-2 rounded-md mr-2 transition-all duration-300 hover:bg-[#FDC758] hover:text-[#0F1B2A]">
-                Se connecter
-              </Link>
-              <Link href="/auth/register" className="bg-[#FDC758] text-[#0F1B2A] font-bold px-4 py-2 rounded-md transition-all duration-300 hover:bg-opacity-90">
-                S'inscrire
-              </Link>
-            </>
+          {isAuthenticated ? (
+            <UserButton afterSignOutUrl="/" />
           ) : (
-            // Afficher le profil et bouton de déconnexion si connecté
-            <div className="flex items-center">
-              <Link href="/settings/profile" className="flex items-center mr-4">
-                <div className="w-8 h-8 rounded-full bg-[#ca9e46] flex items-center justify-center text-white mr-2">
-                  {currentUser?.displayName ? currentUser.displayName.charAt(0) : 'U'}
-                </div>
-                <span className="text-white hidden md:inline">{currentUser?.displayName || currentUser?.email}</span>
-              </Link>
-              <button 
-                onClick={logout}
-                className="text-[#FDC758] font-bold border-2 border-[#FDC758] px-4 py-2 rounded-md transition-all duration-300 hover:bg-[#FDC758] hover:text-[#0F1B2A]"
-              >
-                Déconnexion
-              </button>
-            </div>
+            <Link href="/sign-in" className="text-[#FDC758] font-bold border-2 border-[#FDC758] px-4 py-2 rounded-md mr-2 transition-all duration-300 hover:bg-[#FDC758] hover:text-[#0F1B2A]">
+              Connexion
+            </Link>
           )}
         </div>
       </div>
