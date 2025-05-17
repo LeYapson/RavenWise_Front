@@ -5,7 +5,7 @@ import Header from '../../components/common/Header';
 import Footer from '../../components/common/Footer';
 import DiscussionForm from '../../components/community/DiscussionForm';
 import { getDiscussions } from '../../services/forumService';
-import { useClerkAuth } from '../context/clerkContext';
+import { useClerkAuth } from '../../context/clerkContext';
 
 const Community = () => {
   const { currentUser, loading, isAuthenticated, logout } = useClerkAuth();

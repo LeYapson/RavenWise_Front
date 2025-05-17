@@ -1,20 +1,17 @@
 import { ClerkProvider } from '@clerk/nextjs';
-import { Inter } from 'next/font/google';
-import './globals.css';
 import { ClerkProvider as CustomClerkProvider } from '../context/clerkContext';
-
-const inter = Inter({ subsets: ['latin'] });
+import './globals.css';
 
 export const metadata = {
   title: 'RavenWise | la plateforme d\'apprentissage adaptatif',
-  description: 'RavenWise est une plateforme d\'apprentissage innovante qui utilise l\'intelligence artificielle pour personnaliser votre parcours éducatif et vous aider à atteindre vos objectifs.',
+  description: 'RavenWise est une plateforme d\'apprentissage innovante...',
 };
 
 export default function RootLayout({ children }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider publishableKey="pk_test_Y3VkZGx5LXNwb25nZS00My5jbGVyay5hY2NvdW50cy5kZXYk">
       <html lang="fr">
-        <body className={inter.className}>
+        <body>
           <CustomClerkProvider>
             {children}
           </CustomClerkProvider>
