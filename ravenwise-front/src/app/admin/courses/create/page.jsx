@@ -60,7 +60,7 @@ export default function CreateCoursePage() {
   };
 
   return (
-    <AdminLayout>
+
       <div className="p-6">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">Créer un nouveau cours</h1>
@@ -236,6 +236,5 @@ export default function CreateCoursePage() {
           </form>
         </Card>
       </div>
-    </AdminLayout>
   );
 }

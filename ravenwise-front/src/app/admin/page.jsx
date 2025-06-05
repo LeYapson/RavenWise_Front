@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import AdminLayout from "../../components/admin/AdminLayout";
+// Supprimez cette import qui n'est plus nécessaire
+// import AdminLayout from "../../components/admin/AdminLayout";
 import Card from "../../components/common/Card";
 
 export default function AdminDashboard() {
@@ -42,82 +43,78 @@ export default function AdminDashboard() {
   }
 
   return (
-    <AdminLayout>
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-white mb-6">Tableau de bord administrateur</h1>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard title="Utilisateurs totaux" value={stats.totalUsers} icon="👥" />
-          <StatCard title="Utilisateurs actifs" value={stats.activeUsers} icon="👤" />
-          <StatCard title="Cours disponibles" value={stats.totalCourses} icon="📚" />
-          <StatCard title="Cours complétés" value={stats.completedCourses} icon="🎓" />
+    // Supprimez le <AdminLayout> ici
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6 text-white">Tableau de bord</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Cartes statistiques */}
+        <StatCard title="Utilisateurs" value={stats.totalUsers} icon="👥" trend="+12%" />
+        <StatCard title="Cours" value={stats.totalCourses} icon="📚" trend="+3%" />
+        <StatCard title="Revenus" value="8,350€" icon="💰" trend="+8%" />
+        <StatCard title="Taux d'engagement" value="67%" icon="📈" trend="+5%" />
+      </div>
+      
+      {/* Autres contenus du dashboard */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Activité récente */}
+        <div className="lg:col-span-2 bg-[#182b4a] rounded-xl p-6">
+          <h2 className="text-xl font-bold mb-4 text-white">Activité récente</h2>
+          {/* Contenu de l'activité */}
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card title="Actions rapides">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <ActionButton 
-                label="Créer un cours" 
-                href="/admin/courses/create" 
-                icon="📝"
-                color="bg-blue-600"
-              />
-              <ActionButton 
-                label="Gérer les utilisateurs" 
-                href="/admin/users" 
-                icon="👥"
-                color="bg-green-600"
-              />
-              <ActionButton 
-                label="Modérer le forum" 
-                href="/admin/forum" 
-                icon="💬"
-                color="bg-yellow-600"
-              />
-              <ActionButton 
-                label="Gérer les quiz" 
-                href="/admin/quiz" 
-                icon="❓"
-                color="bg-purple-600"
-              />
-            </div>
-          </Card>
-          
-          <Card title="Activité récente">
-            <div className="space-y-4 mt-4">
-              {[
-                { user: "Sophie Martin", action: "a complété le cours HTML & CSS", time: "Il y a 2 heures" },
-                { user: "Thomas Dupont", action: "s'est inscrit à 3 nouveaux cours", time: "Il y a 5 heures" },
-                { user: "Emma Lefebvre", action: "a publié une nouvelle discussion", time: "Hier" },
-                { user: "Lucas Bernard", action: "a signalé un problème dans un quiz", time: "Il y a 2 jours" },
-              ].map((activity, index) => (
-                <div key={index} className="bg-[#1D2D40] p-3 rounded-md flex justify-between items-center">
-                  <div>
-                    <span className="font-medium text-[#FDC758]">{activity.user}</span>
-                    <span className="text-gray-300"> {activity.action}</span>
-                  </div>
-                  <span className="text-xs text-gray-400">{activity.time}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
+        {/* Actions rapides */}
+        <div className="bg-[#182b4a] rounded-xl p-6">
+          <h2 className="text-xl font-bold mb-4 text-white">Actions rapides</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <ActionButton 
+              label="Créer un cours" 
+              href="/admin/courses/create" 
+              icon="📝"
+              color="bg-blue-600"
+            />
+            <ActionButton 
+              label="Gérer les utilisateurs" 
+              href="/admin/users" 
+              icon="👥"
+              color="bg-green-600"
+            />
+            <ActionButton 
+              label="Modérer le forum" 
+              href="/admin/forum" 
+              icon="💬"
+              color="bg-yellow-600"
+            />
+            <ActionButton 
+              label="Gérer les quiz" 
+              href="/admin/quiz" 
+              icon="❓"
+              color="bg-purple-600"
+            />
+          </div>
         </div>
       </div>
-    </AdminLayout>
+    </div>
+    // Supprimez la fermeture de </AdminLayout>
   );
 }
 
 // Composant pour les cartes de statistiques
-function StatCard({ title, value, icon }) {
+function StatCard({ title, value, icon, trend }) {
+  const isPositive = trend.startsWith('+');
+  
   return (
-    <div className="bg-[#182b4a] rounded-lg p-4 border border-gray-700">
-      <div className="flex items-center justify-between">
+    <div className="bg-[#182b4a] rounded-xl p-6">
+      <div className="flex justify-between items-start">
         <div>
-          <h3 className="text-gray-400 text-sm">{title}</h3>
-          <p className="text-2xl font-bold text-white">{value}</p>
+          <h3 className="text-gray-400">{title}</h3>
+          <p className="text-2xl font-bold mt-1 text-white">{value}</p>
         </div>
-        <span className="text-3xl">{icon}</span>
+        <span className="text-2xl">{icon}</span>
       </div>
+      <p className={`mt-4 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+        {trend} depuis le mois dernier
+      </p>
     </div>
   );
 }

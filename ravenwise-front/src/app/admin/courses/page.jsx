@@ -40,7 +40,6 @@ export default function CoursesAdminPage() {
   };
 
   return (
-    <AdminLayout>
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-white">Gestion des cours</h1>
@@ -126,6 +125,5 @@ export default function CoursesAdminPage() {
           )}
         </Card>
       </div>
-    </AdminLayout>
   );
 }
