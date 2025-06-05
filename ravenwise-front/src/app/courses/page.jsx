@@ -5,7 +5,7 @@ import Header from '../../components/common/Header';
 import Footer from '../../components/common/Footer';
 import CourseCard from '../../components/courses/CourseCard';
 import LearningPathProgress from '../../components/courses/LearningPathProgress';
-import { useAuth } from '../../context/AuthContext';
+//import { useAuth } from '../../context/clerkContext';
 
 export default function CoursesPage() {
   const { currentUser } = useAuth();

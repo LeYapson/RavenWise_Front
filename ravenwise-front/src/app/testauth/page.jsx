@@ -15,7 +15,7 @@ export default function TestAuth() {
       
       // Faire une requête authentifiée
       const response = await axios.post(
-        'http://localhost:5000/api/courses',
+        'http://localhost:3000/api/courses',
         {
           title: 'Cours test authentifié',
           description: 'Test avec authentification',

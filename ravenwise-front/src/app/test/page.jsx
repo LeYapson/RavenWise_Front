@@ -11,14 +11,16 @@ export default function TestApi() {
     title: '',
     description: '',
     category: 'web-dev',
-    difficulty: 'beginner'
+    difficulty: 'beginner',
+    image: '',           // Nouvel élément
+    isPublished: false   // Nouvel élément
   });
 
   // Fonction pour charger les cours
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/courses');
+      const response = await axios.get('http://localhost:3000/api/v1/courses');
       console.log('Réponse API:', response.data);
       setCourses(response.data.data || []);
       setError(null);
@@ -37,10 +39,10 @@ export default function TestApi() {
 
   // Gérer les changements de formulaire
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setNewCourse({
       ...newCourse,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     });
   };
 
@@ -48,13 +50,15 @@ export default function TestApi() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/courses', newCourse);
+      await axios.post('http://localhost:3000/api/v1/courses', newCourse);
       alert('Cours créé avec succès!');
       setNewCourse({
         title: '',
         description: '',
         category: 'web-dev',
-        difficulty: 'beginner'
+        difficulty: 'beginner',
+        image: '',
+        isPublished: false
       });
       // Recharger la liste des cours
       fetchCourses();
@@ -106,6 +110,16 @@ export default function TestApi() {
               required
             ></textarea>
           </div>
+          <div>
+            <label className="block mb-1">Image (URL)</label>
+            <input
+              type="text"
+              name="image"
+              value={newCourse.image}
+              onChange={handleInputChange}
+              className="w-full p-2 border rounded"
+            />
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block mb-1">Catégorie</label>
@@ -135,6 +149,17 @@ export default function TestApi() {
                 <option value="advanced">Avancé</option>
               </select>
             </div>
+          </div>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="isPublished"
+              name="isPublished"
+              checked={newCourse.isPublished}
+              onChange={handleInputChange}
+              className="mr-2"
+            />
+            <label htmlFor="isPublished">Publier immédiatement</label>
           </div>
           <button
             type="submit"
