@@ -45,3 +45,30 @@ export const chapterService = {
     return response.data;
   }
 };
+
+// Services pour les utilisateurs
+export const userService = {
+  // Récupérer les données de l'utilisateur actuel
+  getMe: async () => {
+    const response = await api.get('/users/me');
+    return response.data;
+  },
+  
+  // Créer ou mettre à jour l'utilisateur avec les données Clerk
+  syncWithClerk: async (userData) => {
+    const response = await api.post('/users/sync', userData);
+    return response.data;
+  },
+  
+  // Mettre à jour le profil utilisateur
+  updateProfile: async (userData) => {
+    const response = await api.put('/users/me', userData);
+    return response.data;
+  },
+  
+  // Mettre à jour l'adresse
+  updateAddress: async (addressData) => {
+    const response = await api.put('/users/me/address', addressData);
+    return response.data;
+  }
+};
