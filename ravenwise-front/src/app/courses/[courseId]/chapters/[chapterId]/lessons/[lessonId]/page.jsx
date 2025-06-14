@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
+import { exerciseService, courseService, chapterService } from '../../../../../../../services/api';
 import Header from '../../../../../../../components/common/Header';
 import Footer from '../../../../../../../components/common/Footer';
 import LectureView from '../../../../../../../components/courses/lesson-types/LectureView';
@@ -14,6 +15,10 @@ import { FiArrowLeft, FiClock, FiAward } from 'react-icons/fi';
 export default function LessonPage() {
   const { courseId, chapterId, lessonId } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Récupérer le type depuis l'URL
+  const typeFromUrl = searchParams.get('type') || '';
   
   const [lesson, setLesson] = useState(null);
   const [chapter, setChapter] = useState(null);
@@ -28,24 +33,28 @@ export default function LessonPage() {
       try {
         setLoading(true);
         
-        // Récupérer les données de la leçon
-        const lessonResponse = await axios.get(`http://localhost:3000/api/v1/exercices/${lessonId}`);
-        const lessonData = lessonResponse.data;
+        // Récupérer les données de la leçon avec le service API
+        const lessonData = await exerciseService.getExcerciseById(lessonId);
         
-        setLesson(lessonData);
+        // Normaliser les données pour s'assurer qu'il y a un type
+        // Priorité au type passé dans l'URL, puis au type de la leçon, puis 'lecture' par défaut
+        setLesson({
+          ...lessonData,
+          type: typeFromUrl || lessonData.type || 'lecture'
+        });
         
         // Récupérer les informations du chapitre
         try {
-          const chapterResponse = await axios.get(`http://localhost:3000/api/v1/chapters/${chapterId}`);
-          setChapter(chapterResponse.data);
+          const chapterData = await chapterService.getChapterById(chapterId);
+          setChapter(chapterData);
         } catch (chapterErr) {
           console.warn("Impossible de charger les données du chapitre:", chapterErr);
         }
         
         // Récupérer les informations du cours
         try {
-          const courseResponse = await axios.get(`http://localhost:3000/api/v1/courses/${courseId}`);
-          setCourse(courseResponse.data);
+          const courseData = await courseService.getCourseById(courseId);
+          setCourse(courseData);
         } catch (courseErr) {
           console.warn("Impossible de charger les données du cours:", courseErr);
         }
@@ -65,8 +74,8 @@ export default function LessonPage() {
   // Fonction pour marquer la leçon comme terminée
   const handleLessonComplete = async () => {
     try {
-      // Appel API pour marquer comme terminée
-      await axios.post(`http://localhost:3000/api/v1/exercices/${lessonId}/complete`);
+      // Appel API pour marquer comme terminée avec le service
+      await exerciseService.completeExercice(lessonId);
       
       setIsCompleted(true);
       
@@ -76,8 +85,9 @@ export default function LessonPage() {
         if (lesson.nextLessonId) {
           router.push(`/courses/${courseId}/chapters/${chapterId}/lessons/${lesson.nextLessonId}`);
         } else {
-          // Sinon retour à la page du chapitre
-          router.push(`/courses/${courseId}/chapters/${chapterId}`);
+          // Rediriger vers la page du cours plutôt que celle du chapitre
+          // puisque nous avions décidé de ne pas utiliser la page de chapitre
+          router.push(`/courses/${courseId}`);
         }
       }, 1500);
     } catch (err) {
@@ -91,6 +101,11 @@ export default function LessonPage() {
     router.push(`/courses/${courseId}/chapters/${chapterId}`);
   };
 
+  // Renommée pour plus de clarté
+  const handleBackToCourse = () => {
+    router.push(`/courses/${courseId}`); // Retour direct à la page du cours au lieu du chapitre
+  };
+
   // Rendu du contenu selon le type de leçon
   const renderLessonContent = () => {
     if (!lesson) return null;
@@ -101,26 +116,21 @@ export default function LessonPage() {
       isCompleted
     };
 
-    // Déterminer le type de leçon - conversion en minuscules pour une comparaison cohérente
-    const lessonType = (lesson.type || '').toLowerCase();
-    
-    switch (lessonType) {
-      case 'lecture':
-      case 'reading':
-      case 'text':
-        return <LectureView {...commonProps} />;
-      
-      case 'exercise':
-      case 'exercice':
-      case 'practice':
-        return <ExerciseView {...commonProps} />;
-      
+    // Utiliser le type déjà normalisé dans lesson.type
+    switch (lesson.type.toLowerCase()) {
       case 'quiz':
       case 'test':
         return <QuizView {...commonProps} />;
-      
+    
+      case 'exercice':
+      case 'exercise':
+      case 'practice':
+        return <ExerciseView {...commonProps} />;
+    
+      case 'lecture':
+      case 'reading':
+      case 'text':
       default:
-        console.warn(`Type de leçon non reconnu: ${lesson.type}, utilisation du type lecture par défaut`);
         return <LectureView {...commonProps} />;
     }
   };
@@ -156,10 +166,10 @@ export default function LessonPage() {
               </div>
               <p className="text-red-400 text-lg mb-4">{error || "Leçon non trouvée"}</p>
               <button 
-                onClick={handleBackToChapter}
+                onClick={handleBackToCourse} // Utiliser handleBackToCourse au lieu de handleBackToChapter
                 className="bg-[#253A52] hover:bg-[#304d6d] text-white px-6 py-3 rounded-lg transition-all"
               >
-                Retour au chapitre
+                Retour au cours
               </button>
             </div>
           </div>
@@ -179,7 +189,7 @@ export default function LessonPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <button
-                  onClick={handleBackToChapter}
+                  onClick={handleBackToCourse}  // Changer ici aussi
                   className="text-gray-400 hover:text-white mr-3 p-1"
                 >
                   <FiArrowLeft size={20} />
@@ -210,17 +220,20 @@ export default function LessonPage() {
                   </div>
                 )}
                 
-                <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  lesson.type === 'lecture' ? 'bg-green-900/30 text-green-300' :
-                  lesson.type === 'exercise' ? 'bg-orange-900/30 text-orange-300' :
+                {/* Affichage du type de leçon avec badge et gestion du undefined */}
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  !lesson.type || lesson.type === '' ? 'bg-green-900/30 text-green-300' :
                   lesson.type === 'quiz' ? 'bg-purple-900/30 text-purple-300' :
+                  lesson.type === 'lecture' ? 'bg-green-900/30 text-green-300' :
+                  lesson.type === 'exercice' ? 'bg-orange-900/30 text-orange-300' :
                   'bg-gray-900/30 text-gray-300'
                 }`}>
-                  {lesson.type === 'lecture' && 'Lecture'}
-                  {lesson.type === 'exercise' && 'Exercice'}
-                  {lesson.type === 'quiz' && 'Quiz'}
-                  {!['lecture', 'exercise', 'quiz'].includes(lesson.type) && lesson.type}
-                </div>
+                  {!lesson.type || lesson.type === '' ? 'Lecture' :
+                   lesson.type === 'quiz' ? 'Quiz' :
+                   lesson.type === 'lecture' ? 'Lecture' :
+                   lesson.type === 'exercice' ? 'Exercice' :
+                   lesson.type}
+                </span>
               </div>
             </div>
           </div>

@@ -6,6 +6,7 @@ import Header from '../../components/common/Header';
 import Footer from '../../components/common/Footer';
 import CourseCard from '../../components/courses/CourseCard';
 import LearningPathProgress from '../../components/courses/LearningPathProgress';
+import {courseService} from '../../services/api'; // Assurez-vous que le chemin est correct
 import { useUser } from '@clerk/nextjs';
 
 export default function CoursesPage() {
@@ -20,12 +21,19 @@ export default function CoursesPage() {
   const fetchCourses = async () => {
     try {
       setLoadingCourses(true);
-      const response = await axios.get('http://localhost:3000/api/v1/courses');
-      console.log('Réponse API:', response.data);
       
-      // Modification ici - accepter soit response.data.data soit directement response.data
-      const coursesData = Array.isArray(response.data) ? response.data : (response.data.data || []);
-      setCourses(coursesData);
+      // 1. Le service retourne déjà response.data, pas besoin de .data à nouveau
+      const coursesData = await courseService.getAllCourses();
+      console.log('Réponse API:', coursesData);
+      
+      // 2. Simplifions la vérification des données
+      if (Array.isArray(coursesData)) {
+        setCourses(coursesData);
+      } else {
+        // Si ce n'est pas un tableau, utiliser un tableau vide
+        console.warn("Format de données inattendu:", coursesData);
+        setCourses([]);
+      }
       
       setErrorCourses("");
     } catch (error) {

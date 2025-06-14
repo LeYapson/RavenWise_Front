@@ -20,6 +20,7 @@ import {
   FiChevronDown,
   FiChevronUp
 } from 'react-icons/fi';
+import { courseService, lessonService, chapterService } from '../../../services/api';
 
 export default function CourseDetailPage() {
   const { courseId } = useParams();
@@ -40,24 +41,23 @@ export default function CourseDetailPage() {
       try {
         setLoading(true);
         // Récupérer les détails du cours
-        const courseResponse = await axios.get(`http://localhost:3000/api/v1/courses/${courseId}`);
-        console.log('Course detail API:', courseResponse.data);
+        const courseData = await courseService.getCourseById(courseId);
+        console.log('Course detail API:', courseData);
         
-        setCourse(courseResponse.data);
+        setCourse(courseData);
         
         try {
-          const chaptersResponse = await axios.get(`http://localhost:3000/api/v1/courses/${courseId}/chapters`);
-          const chaptersData = chaptersResponse.data || [];
-          setChapters(chaptersData);
+          const chaptersData = await courseService.getChaptersByCourse(courseId);
+          setChapters(chaptersData || []);
           
           // Précharger le nombre de leçons pour chaque chapitre
-          if (chaptersData.length > 0) {
+          if (chaptersData?.length > 0) {
             // Créer un tableau de promesses pour les requêtes de comptage de leçons
             const lessonsCountPromises = chaptersData.map(chapter => 
-              axios.get(`http://localhost:3000/api/v1/lessons?chapterId=${chapter.id}`)
-                .then(response => ({ 
+              lessonService.getLessonByChapterId(chapter.id)
+                .then(data => ({ 
                   chapterId: chapter.id, 
-                  count: response.data ? response.data.length : 0 
+                  count: data ? data.length : 0 
                 }))
                 .catch(() => ({ chapterId: chapter.id, count: 0 }))
             );
@@ -101,10 +101,10 @@ export default function CourseDetailPage() {
     setLoadingLessons(prev => ({ ...prev, [chapterId]: true }));
     
     try {
-      const lessonsResponse = await axios.get(`http://localhost:3000/api/v1/lessons?chapterId=${chapterId}`);
+      const lessonsData = await lessonService.getLessonByChapterId(chapterId);
       setChapterLessons(prev => ({ 
         ...prev, 
-        [chapterId]: lessonsResponse.data || [] 
+        [chapterId]: lessonsData || [] 
       }));
     } catch (err) {
       console.error(`Erreur lors du chargement des leçons pour le chapitre ${chapterId}:`, err);
@@ -364,7 +364,19 @@ export default function CourseDetailPage() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  router.push(`/courses/${courseId}/chapters/${chapter.id}`);
+                                  if (chapterLessons[chapter.id]?.length > 0) {
+                                    // Rediriger directement vers la première leçon
+                                    router.push(`/courses/${courseId}/chapters/${chapter.id}/lessons/${chapterLessons[chapter.id][0].id}`);
+                                  } else {
+                                    // Si les leçons ne sont pas encore chargées, les charger puis rediriger
+                                    fetchChapterLessons(chapter.id).then(() => {
+                                      if (chapterLessons[chapter.id]?.length > 0) {
+                                        router.push(`/courses/${courseId}/chapters/${chapter.id}/lessons/${chapterLessons[chapter.id][0].id}`);
+                                      } else {
+                                        alert('Aucune leçon disponible pour ce chapitre.');
+                                      }
+                                    });
+                                  }
                                 }}
                                 className="bg-[#253A52] hover:bg-[#304d6d] text-white p-2 rounded-lg transition-all mr-2"
                                 title="Commencer ce chapitre"
@@ -449,8 +461,9 @@ export default function CourseDetailPage() {
                                           
                                           <button 
                                             className={`${lesson.isLocked ? 'text-gray-500 cursor-not-allowed' : 'text-[#FDC758] hover:bg-[#FDC758]/10'} p-1 rounded-full transition-colors`}
-                                            onClick={() => !lesson.isLocked && router.push(`/courses/${courseId}/chapters/${chapter.id}/lessons/${lesson.id}`)}
+                                            onClick={() => !lesson.isLocked && router.push(`/courses/${courseId}/chapters/${chapter.id}/lessons/${lesson.id}?type=${lesson.type || 'lecture'}`)}
                                             disabled={lesson.isLocked}
+                                            title={lesson.isLocked ? "Leçon verrouillée" : "Commencer cette leçon"}
                                           >
                                             <FiArrowRight size={16} />
                                           </button>
@@ -517,7 +530,18 @@ export default function CourseDetailPage() {
                   )}
                   
                   <button 
-                    onClick={() => router.push(`/courses/${courseId}/chapters/${chapters[0]?.id || ''}`)}
+                    onClick={() => {
+                      if (chapters.length > 0 && chapterLessons[chapters[0].id]?.length > 0) {
+                        router.push(`/courses/${courseId}/chapters/${chapters[0].id}/lessons/${chapterLessons[chapters[0].id][0].id}`);
+                      } else if (chapters.length > 0) {
+                        // Charger d'abord les leçons du premier chapitre, puis rediriger
+                        fetchChapterLessons(chapters[0].id).then(() => {
+                          if (chapterLessons[chapters[0].id]?.length > 0) {
+                            router.push(`/courses/${courseId}/chapters/${chapters[0].id}/lessons/${chapterLessons[chapters[0].id][0].id}`);
+                          }
+                        });
+                      }
+                    }}
                     className="w-full bg-[#FDC758] hover:bg-[#e9b53e] text-[#0c1524] font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 mb-6 transition-all"
                   >
                     <FiPlay size={18} />
