@@ -1,240 +1,183 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import AdminLayout from "../../../../components/admin/AdminLayout";
+import { useForm } from "react-hook-form";
+import { FiSave } from "react-icons/fi";
 import Card from "../../../../components/common/Card";
+import { courseService } from "../../../../services/api";
 
 export default function CreateCoursePage() {
   const router = useRouter();
+  const { register, handleSubmit, formState: { errors } } = useForm();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    category: "",
-    difficulty: "beginner",
-    estimatedHours: "",
-    thumbnail: null,
-    thumbnailPreview: null,
-    published: false,
-  });
+  const [error, setError] = useState(null);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked, files } = e.target;
-    
-    if (type === "file" && files[0]) {
-      // Prévisualisation de l'image
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setFormData(prev => ({
-          ...prev,
-          thumbnailPreview: e.target.result,
-          thumbnail: files[0]
-        }));
-      };
-      reader.readAsDataURL(files[0]);
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: type === "checkbox" ? checked : value
-      }));
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    
+  const onSubmit = async (data) => {
     try {
-      // Simulation d'une requête API pour créer un cours
-      console.log("Données du formulaire soumises:", formData);
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simuler un délai
+      setLoading(true);
+      setError(null);
+
+      // Format des données selon les exigences de l'API
+      const courseData = {
+        title: data.title,
+        description: data.description || "",
+        category: data.category,
+        difficulty: data.difficulty,
+        image: data.image
+      };
       
-      alert("Cours créé avec succès!");
+      console.log("Données envoyées à l'API:", courseData);
+
+      // Appel API pour créer le cours
+      const createdCourse = await courseService.createCourse(courseData);
+      console.log("Cours créé avec succès:", createdCourse);
+      
+      alert("Le cours a été créé avec succès !");
       router.push("/admin/courses");
-    } catch (error) {
-      console.error("Erreur lors de la création du cours:", error);
-      alert("Une erreur est survenue lors de la création du cours.");
+    } catch (err) {
+      console.error("Erreur lors de la création du cours:", err);
+      
+      // Afficher les détails de l'erreur
+      if (err.response?.data) {
+        const errorMessage = Array.isArray(err.response.data.message) 
+          ? err.response.data.message.join(", ") 
+          : err.response.data.message || "Erreur inconnue";
+        
+        setError(`Erreur: ${errorMessage}`);
+      } else {
+        setError("Impossible de créer le cours. Veuillez réessayer.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
+    <div className="create-course text-white p-6">
+      <h1 className="text-3xl font-bold mb-8">Créer un cours</h1>
 
-      <div className="p-6">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-white">Créer un nouveau cours</h1>
-          <button
-            onClick={() => router.push("/admin/courses")}
-            className="bg-[#1D2D40] text-white px-4 py-2 rounded-md hover:bg-[#263c58]"
-          >
-            Annuler
-          </button>
+      {error && (
+        <div className="bg-red-900/30 text-red-300 p-4 rounded-lg mb-6">
+          {error}
         </div>
-        
-        <Card>
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Colonne de gauche */}
-              <div className="space-y-6">
-                <div>
-                  <label htmlFor="title" className="block text-gray-300 mb-2">Titre du cours *</label>
-                  <input
-                    type="text"
-                    id="title"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleChange}
-                    required
-                    className="w-full p-3 bg-[#1D2D40] border border-gray-700 rounded-md text-white"
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="description" className="block text-gray-300 mb-2">Description *</label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    required
-                    rows="6"
-                    className="w-full p-3 bg-[#1D2D40] border border-gray-700 rounded-md text-white"
-                  ></textarea>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="category" className="block text-gray-300 mb-2">Catégorie *</label>
-                    <select
-                      id="category"
-                      name="category"
-                      value={formData.category}
-                      onChange={handleChange}
-                      required
-                      className="w-full p-3 bg-[#1D2D40] border border-gray-700 rounded-md text-white"
-                    >
-                      <option value="">Sélectionner</option>
-                      <option value="web-development">Développement Web</option>
-                      <option value="frameworks">Frameworks</option>
-                      <option value="programming">Programmation</option>
-                      <option value="data-science">Data Science</option>
-                      <option value="mobile">Développement Mobile</option>
-                      <option value="design">Design</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="difficulty" className="block text-gray-300 mb-2">Difficulté *</label>
-                    <select
-                      id="difficulty"
-                      name="difficulty"
-                      value={formData.difficulty}
-                      onChange={handleChange}
-                      required
-                      className="w-full p-3 bg-[#1D2D40] border border-gray-700 rounded-md text-white"
-                    >
-                      <option value="beginner">Débutant</option>
-                      <option value="intermediate">Intermédiaire</option>
-                      <option value="advanced">Avancé</option>
-                      <option value="expert">Expert</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div>
-                  <label htmlFor="estimatedHours" className="block text-gray-300 mb-2">Durée estimée (heures) *</label>
-                  <input
-                    type="number"
-                    id="estimatedHours"
-                    name="estimatedHours"
-                    value={formData.estimatedHours}
-                    onChange={handleChange}
-                    required
-                    min="1"
-                    className="w-full p-3 bg-[#1D2D40] border border-gray-700 rounded-md text-white"
-                  />
-                </div>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <Card className="bg-[#182b4a] mb-6">
+          <div className="p-6">
+            <h2 className="text-xl font-bold mb-4">Informations du cours</h2>
+            
+            <div className="mb-4">
+              <label className="block text-gray-400 mb-2">Titre du cours*</label>
+              <input
+                type="text"
+                className={`w-full bg-[#253A52] rounded-lg p-3 text-white ${
+                  errors.title ? "border border-red-500" : ""
+                }`}
+                placeholder="Entrez le titre du cours"
+                {...register("title", { required: "Le titre est requis" })}
+              />
+              {errors.title && (
+                <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>
+              )}
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-gray-400 mb-2">Description</label>
+              <textarea
+                className="w-full bg-[#253A52] rounded-lg p-3 text-white min-h-[120px]"
+                placeholder="Décrivez votre cours"
+                {...register("description")}
+              ></textarea>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="mb-4">
+                <label className="block text-gray-400 mb-2">Catégorie*</label>
+                <select
+                  className={`w-full bg-[#253A52] rounded-lg p-3 text-white ${
+                    errors.category ? "border border-red-500" : ""
+                  }`}
+                  {...register("category", { required: "La catégorie est requise" })}
+                >
+                  <option value="">Sélectionnez une catégorie</option>
+                  <option value="web development">Développement web</option>
+                  <option value="framework">Framework</option>
+                  <option value="programming">Programmation</option>
+                  <option value="data science">Science des données</option>
+                  <option value="mobile development">Développement mobile</option>
+                  <option value="design">Design</option>
+                </select>
+                {errors.category && (
+                  <p className="text-red-500 text-sm mt-1">{errors.category.message}</p>
+                )}
               </div>
-              
-              {/* Colonne de droite */}
-              <div className="space-y-6">
-                <div>
-                  <label htmlFor="thumbnail" className="block text-gray-300 mb-2">Image du cours</label>
-                  <div className="relative border-2 border-dashed border-gray-700 rounded-md p-6 text-center">
-                    {formData.thumbnailPreview ? (
-                      <div>
-                        <img 
-                          src={formData.thumbnailPreview} 
-                          alt="Aperçu" 
-                          className="mx-auto mb-4 max-h-48 rounded-md"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, thumbnail: null, thumbnailPreview: null }))}
-                          className="text-red-400 hover:text-red-300 text-sm"
-                        >
-                          Supprimer l'image
-                        </button>
-                      </div>
-                    ) : (
-                      <div>
-                        <svg className="mx-auto h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                        </svg>
-                        <p className="mt-2 text-sm text-gray-400">Cliquez ou glissez-déposez pour ajouter une image</p>
-                        <p className="mt-1 text-xs text-gray-500">PNG, JPG, GIF jusqu'à 5MB</p>
-                      </div>
-                    )}
-                    <input
-                      type="file"
-                      id="thumbnail"
-                      name="thumbnail"
-                      onChange={handleChange}
-                      accept="image/*"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                  </div>
-                </div>
-                
-                <div className="p-6 bg-[#1D2D40] rounded-md">
-                  <h3 className="text-lg font-medium text-white mb-4">Options de publication</h3>
-                  
-                  <div className="flex items-center mb-4">
-                    <input
-                      type="checkbox"
-                      id="published"
-                      name="published"
-                      checked={formData.published}
-                      onChange={handleChange}
-                      className="w-4 h-4 text-[#FDC758] bg-gray-700 border-gray-600 rounded focus:ring-[#FDC758] focus:ring-opacity-25"
-                    />
-                    <label htmlFor="published" className="ml-2 text-gray-300">Publier immédiatement</label>
-                  </div>
-                  
-                  <p className="text-sm text-gray-400">
-                    {formData.published 
-                      ? "Le cours sera visible par tous les utilisateurs dès sa création." 
-                      : "Le cours sera enregistré comme brouillon et ne sera pas visible par les utilisateurs."
-                    }
-                  </p>
-                </div>
-                
-                <div className="flex justify-end pt-4">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className={`bg-[#FDC758] text-[#0F1B2A] px-6 py-3 rounded-md font-medium hover:bg-opacity-90 ${
-                      loading ? "opacity-70 cursor-not-allowed" : ""
-                    }`}
-                  >
-                    {loading ? "Création en cours..." : "Créer le cours"}
-                  </button>
-                </div>
+
+              <div className="mb-4">
+                <label className="block text-gray-400 mb-2">Niveau de difficulté*</label>
+                <select
+                  className={`w-full bg-[#253A52] rounded-lg p-3 text-white ${
+                    errors.difficulty ? "border border-red-500" : ""
+                  }`}
+                  {...register("difficulty", { required: "Le niveau est requis" })}
+                >
+                  <option value="">Sélectionnez un niveau</option>
+                  <option value="beginner">Débutant</option>
+                  <option value="intermediate">Intermédiaire</option>
+                  <option value="advanced">Avancé</option>
+                  <option value="expert">Expert</option>
+                </select>
+                {errors.difficulty && (
+                  <p className="text-red-500 text-sm mt-1">{errors.difficulty.message}</p>
+                )}
               </div>
             </div>
-          </form>
+            
+            <div className="mb-6">
+              <label className="block text-gray-400 mb-2">URL de l'image*</label>
+              <input
+                type="text"
+                className={`w-full bg-[#253A52] rounded-lg p-3 text-white ${
+                  errors.image ? "border border-red-500" : ""
+                }`}
+                placeholder="URL de l'image de couverture (ex: https://exemple.com/image.jpg)"
+                {...register("image", { 
+                  required: "L'URL de l'image est requise",
+                  maxLength: {
+                    value: 255,
+                    message: "L'URL ne doit pas dépasser 255 caractères"
+                  },
+                  pattern: {
+                    value: /^https?:\/\/.+/,
+                    message: "L'URL doit commencer par http:// ou https://"
+                  }
+                })}
+              />
+              {errors.image && (
+                <p className="text-red-500 text-sm mt-1">{errors.image.message}</p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Entrez l'URL d'une image en ligne (format recommandé: 1200x800px)
+              </p>
+            </div>
+            
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-[#FDC758] hover:bg-[#ffd57e] text-[#0c1524] font-bold py-3 px-6 rounded-lg flex items-center justify-center"
+              >
+                {loading ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-[#0c1524] mr-2"></div>
+                ) : (
+                  <FiSave className="mr-2" />
+                )}
+                Créer le cours
+              </button>
+            </div>
+          </div>
         </Card>
-      </div>
+      </form>
+    </div>
   );
 }

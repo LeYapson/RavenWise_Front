@@ -1,19 +1,19 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
+import { userService, courseService } from '../../services/api'; // Importez vos services API
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-// Supprimez cette import qui n'est plus nécessaire
-// import AdminLayout from "../../components/admin/AdminLayout";
 import Card from "../../components/common/Card";
 
 export default function AdminDashboard() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
+  // État pour stocker les vraies statistiques
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalCourses: 0,
-    activeUsers: 0,
-    completedCourses: 0
+    totalRevenue: 0,
+    completionRate: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -24,26 +24,48 @@ export default function AdminDashboard() {
       if (!isAdmin) {
         router.push('/dashboard');
       } else {
-        // Charger les statistiques (simulé ici)
-        setTimeout(() => {
-          setStats({
-            totalUsers: 152,
-            totalCourses: 24,
-            activeUsers: 87,
-            completedCourses: 435
-          });
-          setLoading(false);
-        }, 1000);
+        // Charger les statistiques réelles
+        fetchStats();
       }
     }
   }, [isLoaded, user, router]);
 
+  // Récupérer les vraies données à partir de l'API
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      
+      // Récupérer le nombre réel d'utilisateurs
+      const users = await userService.getAllUsers();
+      const totalUsers = users.length;
+      
+      // Récupérer le nombre réel de cours
+      const courses = await courseService.getAllCourses();
+      const totalCourses = courses.length;
+      
+      // Autres statistiques - à adapter selon vos endpoints disponibles
+      // Si vous n'avez pas d'API pour les revenus, utilisez 0 ou supprimez cette section
+      
+      setStats({
+        totalUsers,
+        totalCourses,
+        // Utilisez des valeurs par défaut pour les données non disponibles
+        totalRevenue: 0, // ou supprimez si non applicable
+        completionRate: 0 // ou calculez à partir des données disponibles
+      });
+    } catch (error) {
+      console.error("Erreur lors de la récupération des statistiques:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Rendu du composant avec les vraies données
   if (loading) {
     return <div className="flex justify-center items-center min-h-screen bg-[#0c1524] text-white">Chargement...</div>;
   }
 
   return (
-    // Supprimez le <AdminLayout> ici
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6 text-white">Tableau de bord</h1>
       
@@ -51,8 +73,6 @@ export default function AdminDashboard() {
         {/* Cartes statistiques */}
         <StatCard title="Utilisateurs" value={stats.totalUsers} icon="👥" trend="+12%" />
         <StatCard title="Cours" value={stats.totalCourses} icon="📚" trend="+3%" />
-        <StatCard title="Revenus" value="8,350€" icon="💰" trend="+8%" />
-        <StatCard title="Taux d'engagement" value="67%" icon="📈" trend="+5%" />
       </div>
       
       {/* Autres contenus du dashboard */}
@@ -85,23 +105,15 @@ export default function AdminDashboard() {
               icon="💬"
               color="bg-yellow-600"
             />
-            <ActionButton 
-              label="Gérer les quiz" 
-              href="/admin/quiz" 
-              icon="❓"
-              color="bg-purple-600"
-            />
           </div>
         </div>
       </div>
     </div>
-    // Supprimez la fermeture de </AdminLayout>
   );
 }
 
 // Composant pour les cartes de statistiques
-function StatCard({ title, value, icon, trend }) {
-  const isPositive = trend.startsWith('+');
+function StatCard({ title, value, icon }) {
   
   return (
     <div className="bg-[#182b4a] rounded-xl p-6">
@@ -112,9 +124,6 @@ function StatCard({ title, value, icon, trend }) {
         </div>
         <span className="text-2xl">{icon}</span>
       </div>
-      <p className={`mt-4 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-        {trend} depuis le mois dernier
-      </p>
     </div>
   );
 }

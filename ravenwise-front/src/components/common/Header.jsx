@@ -64,9 +64,6 @@ const Header = () => {
                   <Link href="/courses" className="text-white font-bold no-underline">Cours</Link>
                 </li>
                 <li className="mx-4">
-                  <Link href="/quiz" className="text-white font-bold no-underline">Quiz</Link>
-                </li>
-                <li className="mx-4">
                   <Link href="/community" className="text-white font-bold no-underline">Communauté</Link>
                 </li>
                 

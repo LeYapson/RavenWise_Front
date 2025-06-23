@@ -116,10 +116,56 @@ export const userService = {
     const response = await api.delete(`/users/${Id}/courses`);
     return response.data;
   },
-  deleteUser: async (id) => {
-    const response = await api.delete(`/users/${id}`);
+  deleteUser: async (clerkId) => {
+    const response = await api.delete(`/users/${clerkId}`);
     return response.data;
-  }
+  },
+  // Créer un utilisateur avec l'ID Clerk
+  createUser: async (userData) => {
+    const response = await api.post('/users', userData);
+    return response.data;
+  },
+  // Chercher un utilisateur par son ID Clerk
+  getUserByClerkId: async (clerkId) => {
+    const response = await api.get(`/users/clerk/${clerkId}`);
+    return response.data;
+  },
+  // Mettre à jour un utilisateur par son ID Clerk
+  updateUserByClerkId: async (clerkId, userData) => {
+    const response = await api.put(`/users/clerk/${clerkId}`, userData);
+    return response.data;
+  },
+  // Supprimer un utilisateur par son ID Clerk
+  deleteUserByClerkId: async (clerkId) => {
+    const response = await api.delete(`/users/clerk/${clerkId}`);
+    return response.data;
+  },
+  // Synchroniser les données Clerk avec notre base de données
+  syncWithClerk: async (userData) => {
+    try {
+      // Essayer de récupérer l'utilisateur existant
+      const existingUser = await userService.getUserByClerkId(userData.clerkId);
+      
+      // Si l'utilisateur existe, le mettre à jour
+      if (existingUser) {
+        return await userService.updateUserByClerkId(userData.clerkId, userData);
+      } 
+      // Sinon, créer un nouvel utilisateur
+      else {
+        return await userService.createUser(userData);
+      }
+    } catch (error) {
+      // Si l'erreur est 404 (utilisateur non trouvé), créer un nouvel utilisateur
+      if (error.response && error.response.status === 404) {
+        return await userService.createUser(userData);
+      }
+      throw error;
+    }
+  },
+  updateUserRole: async (userId, role) => {
+    const response = await api.patch(`/users/${userId}/role`, { role });
+    return response.data;
+  },
 };
 
 //services pour les leçons

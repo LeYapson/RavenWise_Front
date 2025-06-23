@@ -29,7 +29,6 @@ function AdminSidebar() {
     { label: "Cours", href: "/admin/courses", icon: "📚" },
     { label: "Utilisateurs", href: "/admin/users", icon: "👥" },
     { label: "Forum", href: "/admin/forum", icon: "💬" },
-    { label: "Quiz", href: "/admin/quiz", icon: "❓" },
     { label: "Statistiques", href: "/admin/statistics", icon: "📈" },
   ];
   

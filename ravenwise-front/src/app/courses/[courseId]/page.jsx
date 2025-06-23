@@ -18,13 +18,16 @@ import {
   FiAward,
   FiArrowRight,
   FiChevronDown,
-  FiChevronUp
+  FiChevronUp,
+  FiBookmark
 } from 'react-icons/fi';
-import { courseService, lessonService, chapterService } from '../../../services/api';
+import { courseService, lessonService, chapterService, userService } from '../../../services/api';
+import { useUser } from '@clerk/nextjs';
 
 export default function CourseDetailPage() {
   const { courseId } = useParams();
   const router = useRouter();
+  const { user, isLoaded } = useUser();
 
   const [course, setCourse] = useState(null);
   const [chapters, setChapters] = useState([]);
@@ -34,6 +37,8 @@ export default function CourseDetailPage() {
   const [expandedChapters, setExpandedChapters] = useState({});
   const [chapterLessons, setChapterLessons] = useState({});
   const [loadingLessons, setLoadingLessons] = useState({});
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   // Mise à jour de useEffect pour précharger les nombres de leçons
   useEffect(() => {
@@ -169,6 +174,85 @@ export default function CourseDetailPage() {
     return totalMinutes > 0 ? totalMinutes : null;
   };
 
+  // Ajouter cette fonction dans votre composant CourseDetailPage
+  const calculateTotalCourseDuration = () => {
+    let totalDuration = 0;
+    
+    // Parcourir tous les chapitres qui ont des leçons chargées
+    Object.keys(chapterLessons).forEach(chapterId => {
+      if (chapterLessons[chapterId] && chapterLessons[chapterId].length > 0) {
+        // Ajouter la durée de toutes les leçons de ce chapitre
+        totalDuration += chapterLessons[chapterId].reduce((sum, lesson) => {
+          return sum + (lesson.estimatedDuration || 0);
+        }, 0);
+      }
+    });
+    
+    return totalDuration;
+  };
+
+  // Charger toutes les leçons de tous les chapitres
+  const preloadAllLessons = async () => {
+    if (!chapters || chapters.length === 0) return;
+    
+    for (const chapter of chapters) {
+      if (!chapterLessons[chapter.id]) {
+        await fetchChapterLessons(chapter.id);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (chapters && chapters.length > 0) {
+      preloadAllLessons();
+    }
+  }, [chapters]);
+
+  // Ajouter cette fonction pour vérifier si l'utilisateur suit déjà le cours
+  useEffect(() => {
+    const checkIfFollowing = async () => {
+      if (isLoaded && user && course) {
+        try {
+          const userCourses = await userService.getFollowedCoursesOfUser(user.id);
+          const isAlreadyFollowing = userCourses.some(c => c.id === Number(courseId));
+          setIsFollowing(isAlreadyFollowing);
+        } catch (err) {
+          console.error("Erreur lors de la vérification du suivi du cours:", err);
+        }
+      }
+    };
+    
+    checkIfFollowing();
+  }, [isLoaded, user, course, courseId]);
+
+  // Ajouter cette fonction pour suivre/ne plus suivre un cours
+  const toggleFollowCourse = async () => {
+    if (!isLoaded || !user) {
+      router.push('/sign-in');
+      return;
+    }
+    
+    try {
+      setFollowLoading(true);
+      
+      if (isFollowing) {
+        // Ajouter courseId en paramètre
+        await userService.unfollowCourseById(user.id, courseId);
+        setIsFollowing(false);
+      } else {
+        // Ajouter courseId en paramètre
+        await userService.followCourseById(user.id, courseId);
+        setIsFollowing(true);
+      }
+    } catch (err) {
+      console.error("Erreur lors du suivi/désabonnement du cours:", err);
+      console.log("Détails de l'erreur:", err.response?.data || err.message);
+      alert("Une erreur est survenue. Veuillez réessayer.");
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <>
@@ -216,28 +300,38 @@ export default function CourseDetailPage() {
       {/* Bannière du cours */}
       <div className="relative bg-gradient-to-b from-[#182b4a] to-[#0c1524] h-64 md:h-80">
         <div className="absolute inset-0 bg-cover bg-center opacity-20" 
-             style={{ backgroundImage: `url(${course.imageUrl || '/images/course-default-bg.jpg'})` }}>
+             style={{ backgroundImage: course.imageUrl ? `url(${course.imageUrl})` : 'none' }}>
         </div>
         <div className="absolute inset-0 bg-gradient-to-br from-[#253A52] to-[#0c1524] opacity-50"></div>
         <div className="max-w-7xl mx-auto px-4 h-full flex flex-col justify-end pb-12">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 border-[#FDC758]">
-              <Image 
-                src={course.imageUrl || "/images/course-default.jpg"} 
-                alt={course.title}
-                width={80}
-                height={80}
-                className="w-full h-full object-cover"
-              />
+              {course.imageUrl ? (
+                <Image 
+                  src={course.imageUrl} 
+                  alt={course.title}
+                  width={80}
+                  height={80}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-[#253A52] flex items-center justify-center text-[#FDC758]">
+                  <FiBookOpen size={32} />
+                </div>
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <span className="bg-[#FDC758] text-[#0c1524] text-xs font-bold px-2 py-1 rounded-full">
-                  {course.category || "Développement"}
-                </span>
-                <span className="text-gray-400 text-sm">
-                  {course.level || "Intermédiaire"}
-                </span>
+                {course.category && (
+                  <span className="bg-[#FDC758] text-[#0c1524] text-xs font-bold px-2 py-1 rounded-full">
+                    {course.category}
+                  </span>
+                )}
+                {course.level && (
+                  <span className="text-gray-400 text-sm">
+                    {course.level}
+                  </span>
+                )}
               </div>
               <h1 className="text-3xl md:text-4xl font-bold">{course.title}</h1>
             </div>
@@ -274,59 +368,44 @@ export default function CourseDetailPage() {
               {/* Contenu des onglets */}
               {activeTab === "overview" && (
                 <>
-                  <div className="mb-8">
-                    <h2 className="text-2xl font-bold mb-4">À propos de ce cours</h2>
-                    <p className="text-gray-300 leading-relaxed">
-                      {course.description || "Aucune description disponible pour ce cours."}
-                    </p>
-                  </div>
+                  {course.description && (
+                    <div className="mb-8">
+                      <h2 className="text-2xl font-bold mb-4">À propos de ce cours</h2>
+                      <p className="text-gray-300 leading-relaxed">
+                        {course.description}
+                      </p>
+                    </div>
+                  )}
                   
-                  <div className="mb-8">
-                    <h2 className="text-2xl font-bold mb-4">Ce que vous allez apprendre</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {course.learningPoints ? (
-                        course.learningPoints.map((point, index) => (
+                  {course.learningPoints && course.learningPoints.length > 0 && (
+                    <div className="mb-8">
+                      <h2 className="text-2xl font-bold mb-4">Ce que vous allez apprendre</h2>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {course.learningPoints.map((point, index) => (
                           <div key={index} className="flex gap-2">
                             <FiCheck className="text-green-400 flex-shrink-0 mt-1" />
                             <p className="text-gray-300">{point}</p>
                           </div>
-                        ))
-                      ) : (
-                        Array(4).fill(0).map((_, index) => (
-                          <div key={index} className="flex gap-2">
-                            <FiCheck className="text-green-400 flex-shrink-0 mt-1" />
-                            <p className="text-gray-300">
-                              {index === 0 && "Maîtriser les concepts fondamentaux"}
-                              {index === 1 && "Création de projets pratiques"}
-                              {index === 2 && "Résoudre des problèmes complexes"}
-                              {index === 3 && "Appliquer les meilleures pratiques du secteur"}
-                            </p>
-                          </div>
-                        ))
-                      )}
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                   
-                  <div className="mb-8">
-                    <h2 className="text-2xl font-bold mb-4">Prérequis</h2>
-                    <div className="bg-[#182b4a] p-6 rounded-lg">
-                      <ul className="space-y-2">
-                        {course.prerequisites ? (
-                          course.prerequisites.map((prerequisite, index) => (
+                  {course.prerequisites && course.prerequisites.length > 0 && (
+                    <div className="mb-8">
+                      <h2 className="text-2xl font-bold mb-4">Prérequis</h2>
+                      <div className="bg-[#182b4a] p-6 rounded-lg">
+                        <ul className="space-y-2">
+                          {course.prerequisites.map((prerequisite, index) => (
                             <li key={index} className="flex items-center gap-2">
                               <div className="w-2 h-2 rounded-full bg-[#FDC758]"></div>
                               <span>{prerequisite}</span>
                             </li>
-                          ))
-                        ) : (
-                          <li className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-[#FDC758]"></div>
-                            <span>Aucun prérequis spécifique pour ce cours</span>
-                          </li>
-                        )}
-                      </ul>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </>
               )}
               
@@ -542,11 +621,30 @@ export default function CourseDetailPage() {
                         });
                       }
                     }}
-                    className="w-full bg-[#FDC758] hover:bg-[#e9b53e] text-[#0c1524] font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 mb-6 transition-all"
+                    className="w-full bg-[#FDC758] hover:bg-[#e9b53e] text-[#0c1524] font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 mb-4 transition-all"
                   >
                     <FiPlay size={18} />
                     Commencer le cours
                   </button>
+                  
+                  {isLoaded && user && (
+                    <button
+                      onClick={toggleFollowCourse}
+                      disabled={followLoading}
+                      className={`w-full ${
+                        isFollowing 
+                          ? 'bg-[#253A52] hover:bg-[#304d6d] text-white' 
+                          : 'bg-transparent border-2 border-[#FDC758] text-[#FDC758] hover:bg-[#FDC758]/10'
+                      } font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 mb-6 transition-all`}
+                    >
+                      {followLoading ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                      ) : (
+                        <FiBookmark size={18} />
+                      )}
+                      {isFollowing ? "Ne plus suivre" : "Suivre ce cours"}
+                    </button>
+                  )}
                   
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
@@ -555,7 +653,13 @@ export default function CourseDetailPage() {
                       </div>
                       <div>
                         <p className="text-sm text-gray-400">Durée</p>
-                        <p className="font-medium">{course.duration ? formatDuration(course.duration) : "3h 45min"}</p>
+                        <p className="font-medium">
+                          {Object.keys(chapterLessons).length > 0 
+                            ? formatDuration(calculateTotalCourseDuration())
+                            : course.duration 
+                              ? formatDuration(course.duration) 
+                              : "Calcul en cours..."}
+                        </p>
                       </div>
                     </div>
                     

@@ -16,6 +16,9 @@ const LectureView = ({ lesson, onComplete, isCompleted }) => {
     }
   };
 
+  // Pour déboguer - vérifier ce que contient lesson
+  console.log("Contenu de la leçon:", lesson);
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* En-tête de la leçon */}
@@ -23,7 +26,7 @@ const LectureView = ({ lesson, onComplete, isCompleted }) => {
         <div className="inline-flex items-center justify-center w-16 h-16 bg-green-900/30 rounded-full mb-4">
           <FiBookOpen size={24} className="text-green-400" />
         </div>
-        <h1 className="text-3xl font-bold mb-2">{lesson.title}</h1>
+        <h1 className="text-3xl font-bold mb-2">{lesson.title || "Lecture"}</h1>
         {lesson.description && (
           <p className="text-gray-400 text-lg">{lesson.description}</p>
         )}
@@ -40,10 +43,16 @@ const LectureView = ({ lesson, onComplete, isCompleted }) => {
           }}
         >
           {/* Rendu du contenu HTML */}
-          <div 
-            dangerouslySetInnerHTML={{ __html: lesson.content || lesson.htmlContent || '' }} 
-            className="lecture-content"
-          />
+          {(lesson.content || lesson.htmlContent) ? (
+            <div 
+              dangerouslySetInnerHTML={{ __html: lesson.content || lesson.htmlContent || '' }} 
+              className="lecture-content"
+            />
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-gray-400">Cette leçon ne contient pas de contenu textuel.</p>
+            </div>
+          )}
           
           {/* Indicateur de fin de contenu */}
           <div className="mt-12 pt-6 border-t border-gray-700 text-center">
@@ -70,7 +79,7 @@ const LectureView = ({ lesson, onComplete, isCompleted }) => {
             
             <button
               onClick={onComplete}
-              disabled={!hasScrolledToEnd || isCompleted}
+              disabled={!hasScrolledToEnd && !isCompleted}
               className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
                 hasScrolledToEnd && !isCompleted
                   ? 'bg-[#FDC758] text-[#0F1B2A] hover:bg-opacity-90'

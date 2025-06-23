@@ -5,6 +5,8 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+// Importez l'image ici
+import BannerBackground from '../../assets/images/banner-background.jpg';
 
 const HeroSection = () => {
   return (
@@ -21,10 +23,10 @@ const HeroSection = () => {
             La puissance de l'IA au service de votre réussite.
           </p>
           <div className="flex flex-wrap gap-4">
-            <Link href="/auth/register" className="bg-[#ca9e46] hover:bg-[#d4af61] text-[#0c1524] font-bold py-3 px-8 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+            <Link href="/sign-up" className="bg-[#ca9e46] hover:bg-[#d4af61] text-[#0c1524] font-bold py-3 px-8 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
               Commencer gratuitement
             </Link>
-            <Link href="/auth/login" className="bg-transparent border-2 border-white text-white hover:bg-white/10 font-bold py-3 px-8 rounded-lg transition-all duration-300">
+            <Link href="/sign-in" className="bg-transparent border-2 border-white text-white hover:bg-white/10 font-bold py-3 px-8 rounded-lg transition-all duration-300">
               Se connecter
             </Link>
           </div>
@@ -32,10 +34,14 @@ const HeroSection = () => {
         
         {/* Image ou illustration */}
         <div className="md:w-1/2 flex justify-center">
-          <div className="w-full max-w-md h-96 bg-white/10 rounded-2xl flex items-center justify-center">
-            <p className="text-white text-xl">Illustration / Capture d'écran</p>
-            {/* Vous pouvez remplacer ce div par une Image quand vous en aurez une */}
-            {/* <Image src="/images/hero-illustration.png" alt="RavenWise Dashboard" width={500} height={400} /> */}
+          <div className="w-full max-w-md h-96 bg-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden">
+            {/* Utilisez l'image importée */}
+            <Image 
+              src={BannerBackground}
+              alt="RavenWise Dashboard" 
+              fill
+              className="object-cover"
+            />
           </div>
         </div>
       </div>
