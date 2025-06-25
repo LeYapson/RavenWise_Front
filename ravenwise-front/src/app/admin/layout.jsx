@@ -1,22 +1,27 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useClerkAuth } from "../../context/clerkContext";
+import AdminGuard from "../../components/admin/AdminGuard";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { UserButton } from "@clerk/nextjs";
 import RavenWiseLogo from "../../assets/images/Ravenwise.png";
+import { usePathname } from 'next/navigation';
 
 export default function AdminLayout({ children }) {
   return (
-    <div className="flex h-screen bg-[#0c1524]">
-      <AdminSidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <AdminHeader />
-        <div className="flex-1 overflow-y-auto">
-          {children}
+    <AdminGuard>
+      <div className="flex h-screen bg-[#0c1524]">
+        <AdminSidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <AdminHeader />
+          <div className="flex-1 overflow-y-auto">
+            {children}
+          </div>
         </div>
       </div>
-    </div>
+    </AdminGuard>
   );
 }
 

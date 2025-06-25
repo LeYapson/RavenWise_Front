@@ -7,15 +7,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useClerkAuth } from '../../context/clerkContext';
-import { useUser, useClerk } from "@clerk/nextjs";
 import { useRouter } from 'next/navigation';
 import RavenWiseLogo from '../../assets/images/Ravenwise.png';
 import { FiUser, FiSettings, FiLogOut } from 'react-icons/fi';
 
 const Header = () => {
-  const { isAuthenticated } = useClerkAuth();
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  const { isAuthenticated, isAdmin, currentUser, userImage, logout } = useClerkAuth();
   const router = useRouter();
   
   // État pour le menu déroulant
@@ -38,13 +35,10 @@ const Header = () => {
   
   // Fonction pour se déconnecter
   const handleSignOut = async () => {
-    await signOut();
+    await logout();
     router.push('/');
   };
 
-  // Vérifier si l'utilisateur est admin via les métadonnées publiques
-  const isAdmin = user?.publicMetadata?.role === 'admin';
-  
   return (
     <header className="bg-[#0F1B2A] py-4 px-6 shadow-md">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -98,7 +92,7 @@ const Header = () => {
                   title="Menu utilisateur"
                 >
                   <Image 
-                    src={user?.imageUrl || "/images/default-avatar.png"}
+                    src={userImage}
                     alt="Profil"
                     width={40}
                     height={40}
@@ -109,8 +103,8 @@ const Header = () => {
                 {isMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-[#182b4a] rounded-lg shadow-lg py-1 z-50 border border-[#253A52]">
                     <div className="px-4 py-2 border-b border-[#253A52]">
-                      <p className="text-sm font-medium text-white">{user?.fullName}</p>
-                      <p className="text-xs text-gray-400">{user?.primaryEmailAddress?.emailAddress}</p>
+                      <p className="text-sm font-medium text-white">{currentUser?.fullName}</p>
+                      <p className="text-xs text-gray-400">{currentUser?.primaryEmailAddress?.emailAddress}</p>
                     </div>
                     
                     <Link 

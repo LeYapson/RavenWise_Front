@@ -12,7 +12,11 @@ import ProgressBar from "@/components/common/ProgressBar";
 import { useUser } from "@clerk/nextjs";
 
 export default function ProfilePage() {
-  const { currentUser, loading } = useClerkAuth();
+  // Ajouter des logs de débogage
+  const { currentUser, loading, isAdmin } = useClerkAuth();
+  console.log("Page profil - currentUser:", currentUser);
+  console.log("Page profil - isAdmin:", isAdmin);
+
   const { user: clerkUser, isLoaded: clerkIsLoaded } = useUser();
   const router = useRouter();
 
@@ -79,7 +83,7 @@ export default function ProfilePage() {
   
   // Une fois Clerk chargé, on peut utiliser ses données
   const inscriptionDate = clerkUser ? formatInscriptionDate(clerkUser.createdAt) : "Date inconnue";
-  const isAdmin = clerkUser?.publicMetadata?.role === 'admin';
+  //const isAdmin = clerkUser?.publicMetadata?.role === 'admin';
 
   return (
     <>

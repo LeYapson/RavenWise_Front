@@ -237,11 +237,11 @@ export default function CourseDetailPage() {
       
       if (isFollowing) {
         // Ajouter courseId en paramètre
-        await userService.unfollowCourseById(user.id, courseId);
+        await userService.unfollowCourseById(user.id, Number(courseId));
         setIsFollowing(false);
       } else {
         // Ajouter courseId en paramètre
-        await userService.followCourseById(user.id, courseId);
+        await userService.followCourseById(user.id, Number(courseId));
         setIsFollowing(true);
       }
     } catch (err) {

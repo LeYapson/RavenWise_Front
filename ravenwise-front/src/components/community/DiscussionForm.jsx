@@ -1,10 +1,10 @@
 // src/components/community/DiscussionForm.jsx
 import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { createDiscussion } from '../../services/forumService';
+import { useClerkAuth } from '../../context/clerkContext';
+import { communityService } from '../../services/api';
 
 export default function DiscussionForm({ onSuccess }) {
-  const { currentUser } = useAuth();
+  const { currentUser } = useClerkAuth();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState('');
@@ -19,12 +19,12 @@ export default function DiscussionForm({ onSuccess }) {
     try {
       const tagsArray = tags.split(',').map(tag => tag.trim()).filter(Boolean);
       
-      await createDiscussion({
+      await communityService.createPublication({
         title,
         content,
         tags: tagsArray,
-        authorId: currentUser.uid,
-        createdAt: new Date()
+        authorId: currentUser.id, // Utiliser l'ID du système actuel
+        createdAt: new Date().toISOString()
       });
       
       setTitle('');
@@ -32,7 +32,7 @@ export default function DiscussionForm({ onSuccess }) {
       setTags('');
       if (onSuccess) onSuccess();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Une erreur est survenue lors de la création de la discussion");
     } finally {
       setLoading(false);
     }

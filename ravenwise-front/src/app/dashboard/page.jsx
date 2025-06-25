@@ -92,7 +92,7 @@ export default function Dashboard() {
         
         // Récupérer les cours recommandés
         try {
-          const allCourses = await courseService.getAllCourses();
+          const allCourses = await courseService.getPublishedCourses();
           
           // Filtrer pour ne pas recommander des cours déjà suivis
           const followedIds = followedCourses.map(c => c.id);

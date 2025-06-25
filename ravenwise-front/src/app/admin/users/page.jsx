@@ -35,10 +35,8 @@ export default function AdminUsersPage() {
   // Fonction pour changer le rôle d'un utilisateur
   const handleRoleChange = async (user, role) => {
     try {
-      console.log("Tentative de mise à jour du rôle:", { userId: user.clerkId, role });
-      
-      // Utiliser clerkId comme identifiant
-      await userService.updateUser(user.clerkId, { role });
+      // Mettre à jour le rôle dans notre base de données
+      await userService.updateUserRole(user.clerkId, role);
       
       // Mettre à jour l'état local
       setUsers(users.map(u => 
@@ -175,7 +173,7 @@ export default function AdminUsersPage() {
                         
                         {/* Bouton de suppression */}
                         <button
-                          onClick={() => handleDeleteUser(user.id)}
+                          onClick={() => handleDeleteUser(user.clerkId)}
                           className="p-2 bg-red-900/30 text-red-400 rounded hover:bg-red-900/50 transition"
                           title="Supprimer"
                         >

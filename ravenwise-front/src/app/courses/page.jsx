@@ -24,7 +24,7 @@ export default function CoursesPage() {
   const fetchCourses = async () => {
     try {
       setLoadingCourses(true);
-      const coursesData = await courseService.getAllCourses();
+      const coursesData = await courseService.getPublishedCourses();
       
       if (Array.isArray(coursesData)) {
         setCourses(coursesData);

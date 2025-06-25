@@ -4,14 +4,14 @@ import Link from 'next/link';
 import Header from '../../components/common/Header';
 import Footer from '../../components/common/Footer';
 import DiscussionForm from '../../components/community/DiscussionForm';
-import { getDiscussions } from '../../services/forumService';
+import { communityService } from '../../services/api';
 import { useClerkAuth } from '../../context/clerkContext';
 
 const Community = () => {
   const { currentUser, loading, isAuthenticated, logout } = useClerkAuth();
   const [activeTab, setActiveTab] = useState('discussions');
   const [discussions, setDiscussions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  //const [loading, setLoading] = useState(true);
   const [showNewDiscussionForm, setShowNewDiscussionForm] = useState(false);
 
   useEffect(() => {

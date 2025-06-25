@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.59:3000/api/v1';
 
 // Créer une instance axios avec configuration de base
 const api = axios.create({
@@ -8,18 +8,6 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json'
   }
-});
-
-// Intercepteur pour ajouter le token d'authentification
-api.interceptors.request.use(async (config) => {
-  // Récupérer le token depuis la session Clerk
-  const token = localStorage.getItem('clerk-token');
-  
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  
-  return config;
 });
 
 // Services pour les cours
@@ -45,7 +33,7 @@ export const courseService = {
     return response.data;
   },
   updateCourse: async (id, courseData) => {
-    const response = await api.put(`/courses/${id}`, courseData);
+    const response = await api.patch(`/courses/${id}`, courseData);
     return response.data;
   },
   deleteCourse: async (id) => {
@@ -57,7 +45,7 @@ export const courseService = {
 // Services pour les chapitres
 export const chapterService = {
   createChapter: async (chapterData) => {
-    const response = await api.post('/chapters', chapterData);
+    const response = await api.post(`/chapters`, chapterData);
     return response.data;
   },
   getAllChapters: async () => {
@@ -104,16 +92,18 @@ export const userService = {
     const response = await api.get(`/users/${Id}/courses`);
     return response.data;
   },
-  followCourseById: async (Id) => {
-    const response = await api.post(`/users/${Id}/courses`);
+  followCourseById: async (Id, courseId) => {
+    console.log(`[API] Ajout du cours ${courseId} pour l'utilisateur ${Id}`);
+    const response = await api.post(`/users/${Id}/courses`, { courseId });
     return response.data;
   },
-  updateUser: async (id, userData) => {
-    const response = await api.put(`/users/${id}`, userData);
+  updateUser: async (clerkId, userData) => {
+    const response = await api.patch(`/users/${clerkId}`, userData);
     return response.data;
   },
-  unfollowCourseById: async (Id) => {
-    const response = await api.delete(`/users/${Id}/courses`);
+  unfollowCourseById: async (Id, courseId) => {
+    console.log(`[API] Suppression du cours ${courseId} pour l'utilisateur ${Id}`);
+    const response = await api.delete(`/users/${Id}/courses`, {data: { courseId }});
     return response.data;
   },
   deleteUser: async (clerkId) => {
@@ -122,50 +112,87 @@ export const userService = {
   },
   // Créer un utilisateur avec l'ID Clerk
   createUser: async (userData) => {
-    const response = await api.post('/users', userData);
-    return response.data;
+    console.log("[API] Données envoyées pour la création:", userData);
+    try {
+      // S'assurer que tous les champs requis sont présents
+      const userToCreate = {
+        clerkId: userData.clerkId,
+        firstName: userData.firstName || "",
+        lastName: userData.lastName || "",
+        email: userData.email || "",
+        //imageUrl: userData.imageUrl || "",
+        role: userData.role || "free",
+        // Ajoutez d'autres champs requis par votre API
+      };
+      
+      const response = await api.post('/users', userToCreate);
+      console.log("[API] Utilisateur créé:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("[API] Erreur détaillée:", error.response?.data);
+      throw error;
+    }
   },
   // Chercher un utilisateur par son ID Clerk
   getUserByClerkId: async (clerkId) => {
-    const response = await api.get(`/users/clerk/${clerkId}`);
-    return response.data;
+    console.log("[API] Récupération utilisateur par clerkId:", clerkId);
+    try {
+      const response = await api.get(`/users/${clerkId}`);
+      console.log("[API] Réponse:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("[API] Erreur lors de la récupération de l'utilisateur:", error.response?.data || error.message);
+      throw error;
+    }
   },
   // Mettre à jour un utilisateur par son ID Clerk
   updateUserByClerkId: async (clerkId, userData) => {
-    const response = await api.put(`/users/clerk/${clerkId}`, userData);
-    return response.data;
-  },
-  // Supprimer un utilisateur par son ID Clerk
-  deleteUserByClerkId: async (clerkId) => {
-    const response = await api.delete(`/users/clerk/${clerkId}`);
+    console.log("[API] Mise à jour utilisateur:", { clerkId, ...userData });
+    const response = await api.patch(`/users/${clerkId}`, userData);
     return response.data;
   },
   // Synchroniser les données Clerk avec notre base de données
   syncWithClerk: async (userData) => {
     try {
+      console.log("API: Tentative de récupération de l'utilisateur:", userData.clerkId);
       // Essayer de récupérer l'utilisateur existant
-      const existingUser = await userService.getUserByClerkId(userData.clerkId);
+      let existingUser;
+      try {
+        existingUser = await userService.getUserByClerkId(userData.clerkId);
+        console.log("API: Utilisateur existant trouvé:", existingUser);
+      } catch (e) {
+        console.log("API: Utilisateur non trouvé:", e.message);
+        existingUser = null;
+      }
       
       // Si l'utilisateur existe, le mettre à jour
       if (existingUser) {
+        console.log("API: Mise à jour de l'utilisateur");
         return await userService.updateUserByClerkId(userData.clerkId, userData);
       } 
       // Sinon, créer un nouvel utilisateur
       else {
+        console.log("API: Création d'un nouvel utilisateur");
         return await userService.createUser(userData);
       }
     } catch (error) {
-      // Si l'erreur est 404 (utilisateur non trouvé), créer un nouvel utilisateur
-      if (error.response && error.response.status === 404) {
-        return await userService.createUser(userData);
-      }
+      console.error("API: Erreur dans syncWithClerk:", error);
       throw error;
     }
   },
-  updateUserRole: async (userId, role) => {
-    const response = await api.patch(`/users/${userId}/role`, { role });
+  // Mettre à jour uniquement le rôle d'un utilisateur par son ID Clerk
+updateUserRole: async (clerkId, newRole) => {
+  console.log(`[API] Mise à jour du rôle: utilisateur ${clerkId} → ${newRole}`);
+  try {
+    // Envoi uniquement du champ 'role' pour la mise à jour
+    const response = await api.patch(`/users/${clerkId}`, { role: newRole });
+    console.log("[API] Rôle utilisateur mis à jour:", response.data);
     return response.data;
-  },
+  } catch (error) {
+    console.error("[API] Erreur lors de la mise à jour du rôle:", error.response?.data || error.message);
+    throw error;
+  }
+}
 };
 
 //services pour les leçons
@@ -220,6 +247,60 @@ export const quizzesService = {
   },
   answerQuiz: async (quizId, answers) => {
     const response = await api.post(`/quizzes/${quizId}/validate`, { answers });
+    return response.data;
+  },
+}
+
+//services pour la communauté
+export const communityService = {
+  //publications
+  createPublication: async (publicationData) => {
+    const response = await api.post('/publications', publicationData);
+    return response.data;
+  },
+  getAllPublications: async () => {
+    const response = await api.get('/publications');
+    return response.data;
+  },
+  getPublicationById: async (id) => {
+    const response = await api.get(`/publications/${id}`);
+    return response.data;
+  },
+  getAllPublicationsByCategory: async (category) => {
+    const response = await api.get('/publications', { params: { category } });
+    return response.data;
+  },
+  updatePublication: async (id, publicationData) => {
+    const response = await api.patch(`/publications/${id}`, publicationData);
+    return response.data;
+  },
+  deletePublication: async (id) => {
+    const response = await api.delete(`/publications/${id}`);
+    return response.data;
+  },
+  //Messages
+  createMessage: async (messageData) => {
+    const response = await api.post('/messages', messageData);
+    return response.data;
+  },
+  getAllMessages: async () => {
+    const response = await api.get('/messages');
+    return response.data;
+  },
+  getAllMessageByUserId: async (id) => {
+    const response = await api.get(`/messages/user/${id}`);
+    return response.data;
+  },
+  getAllMessagesByPublicationId: async (publicationId) => {
+    const response = await api.get(`/messages/publication/${publicationId}`);
+    return response.data;
+  },
+  updateMessage: async (id, messageData) => {
+    const response = await api.patch(`/messages/${id}`, messageData);
+    return response.data;
+  },
+  deleteMessage: async (id) => {
+    const response = await api.delete(`/messages/${id}`);
     return response.data;
   },
 }
