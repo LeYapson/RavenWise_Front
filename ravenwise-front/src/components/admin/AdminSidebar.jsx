@@ -14,7 +14,7 @@ const AdminSidebar = () => {
     { label: "Utilisateurs", href: "/admin/users", icon: "👥" },
     { label: "Cours", href: "/admin/courses", icon: "📚" },
     { label: "Quiz", href: "/admin/quizzes", icon: "❓" },
-    { label: "Discussions", href: "/admin/forum/moderation", icon: "💬" },
+    { label: "Communauté", href: "/admin/community", icon: "💬" },
     { label: "Statistiques", href: "/admin/statistics", icon: "📈" },
     { label: "Paramètres", href: "/admin/settings", icon: "⚙️" },
   ];

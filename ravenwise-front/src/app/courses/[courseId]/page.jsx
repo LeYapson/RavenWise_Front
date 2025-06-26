@@ -23,6 +23,7 @@ import {
 } from 'react-icons/fi';
 import { courseService, lessonService, chapterService, userService } from '../../../services/api';
 import { useUser } from '@clerk/nextjs';
+import { isLessonCompleted } from '../../../utils/lessonCompletion';
 
 export default function CourseDetailPage() {
   const { courseId } = useParams();
@@ -300,15 +301,15 @@ export default function CourseDetailPage() {
       {/* Bannière du cours */}
       <div className="relative bg-gradient-to-b from-[#182b4a] to-[#0c1524] h-64 md:h-80">
         <div className="absolute inset-0 bg-cover bg-center opacity-20" 
-             style={{ backgroundImage: course.imageUrl ? `url(${course.imageUrl})` : 'none' }}>
+             style={{ backgroundImage: course.image ? `url(${course.image})` : 'none' }}>
         </div>
         <div className="absolute inset-0 bg-gradient-to-br from-[#253A52] to-[#0c1524] opacity-50"></div>
         <div className="max-w-7xl mx-auto px-4 h-full flex flex-col justify-end pb-12">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 border-[#FDC758]">
-              {course.imageUrl ? (
+              {course.image ? (
                 <Image 
-                  src={course.imageUrl} 
+                  src={course.image} 
                   alt={course.title}
                   width={80}
                   height={80}
@@ -481,7 +482,7 @@ export default function CourseDetailPage() {
                                       <div className="flex flex-col md:flex-row justify-between md:items-center">
                                         <div className="flex items-start gap-3 mb-3 md:mb-0">
                                           <div className="mt-1">
-                                            {lesson.isCompleted ? (
+                                            {isLessonCompleted(lesson.id) ? (
                                               <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
                                                 <FiCheck className="text-green-400" size={14} />
                                               </div>
@@ -580,7 +581,7 @@ export default function CourseDetailPage() {
                 {/* Image de couverture */}
                 <div className="relative aspect-video w-full overflow-hidden">
                   <Image
-                    src={course.imageUrl || "/images/course-default.jpg"}
+                    src={course.image || "/images/course-default.jpg"}
                     alt={course.title}
                     width={500}
                     height={280}

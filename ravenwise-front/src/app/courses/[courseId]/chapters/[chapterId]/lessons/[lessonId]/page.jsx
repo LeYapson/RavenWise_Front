@@ -4,13 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
-import { exerciseService, courseService, chapterService } from '../../../../../../../services/api';
+import { lessonService, exerciseService, lecturesService, quizzesService, courseService, chapterService } from '../../../../../../../services/api';
 import Header from '../../../../../../../components/common/Header';
 import Footer from '../../../../../../../components/common/Footer';
 import LectureView from '../../../../../../../components/courses/lesson-types/LectureView';
 import ExerciseView from '../../../../../../../components/courses/lesson-types/ExerciseView';
 import QuizView from '../../../../../../../components/courses/lesson-types/QuizView';
 import { FiArrowLeft, FiClock, FiAward } from 'react-icons/fi';
+import { isLessonCompleted, markLessonAsCompleted } from '../../../../../../../utils/lessonCompletion';
 
 export default function LessonPage() {
   const { courseId, chapterId, lessonId } = useParams();
@@ -33,15 +34,50 @@ export default function LessonPage() {
       try {
         setLoading(true);
         
-        // Récupérer les données de la leçon avec le service API
-        const lessonData = await exerciseService.getExcerciseById(lessonId);
+        let lessonData;
+        let lessonType = typeFromUrl || 'lecture'; // Type par défaut
         
-        // Normaliser les données pour s'assurer qu'il y a un type
-        // Priorité au type passé dans l'URL, puis au type de la leçon, puis 'lecture' par défaut
-        setLesson({
+        // D'abord essayer de récupérer depuis la table lessons
+        try {
+          lessonData = await lessonService.getLessonById(lessonId);
+          lessonType = lessonData.type || typeFromUrl || 'lecture';
+        } catch (lessonError) {
+          console.log("Leçon non trouvée dans la table lessons, essai avec les services spécialisés...");
+          
+          // Si pas trouvé, essayer selon le type spécifié dans l'URL
+          try {
+            switch (typeFromUrl.toLowerCase()) {
+              case 'exercice':
+              case 'exercise':
+                lessonData = await exerciseService.getExcerciseById(lessonId);
+                lessonType = 'exercice';
+                break;
+              case 'quiz':
+                lessonData = await quizzesService.getQuizById(lessonId);
+                lessonType = 'quiz';
+                break;
+              case 'lecture':
+              default:
+                lessonData = await lecturesService.getLectureById(lessonId);
+                lessonType = 'lecture';
+                break;
+            }
+          } catch (serviceError) {
+            console.error("Erreur avec les services spécialisés:", serviceError);
+            throw new Error("Leçon non trouvée dans aucun service");
+          }
+        }
+        
+        // Normaliser les données
+        const normalizedLesson = {
           ...lessonData,
-          type: typeFromUrl || lessonData.type || 'lecture'
-        });
+          type: lessonType
+        };
+        setLesson(normalizedLesson);
+        
+        // Vérifier l'état de complétion depuis localStorage si l'API ne le fournit pas
+        const isLessonCompleted_Local = isLessonCompleted(lessonId);
+        setIsCompleted(isLessonCompleted_Local);
         
         // Récupérer les informations du chapitre
         try {
@@ -74,25 +110,75 @@ export default function LessonPage() {
   // Fonction pour marquer la leçon comme terminée
   const handleLessonComplete = async () => {
     try {
-      // Appel API pour marquer comme terminée avec le service
-      await exerciseService.completeExercice(lessonId);
+      // Strategy: Tentative d'utiliser les endpoints spécialisés de complétion s'ils existent,
+      // sinon on marque simplement comme complété côté front
+      let completionSuccess = false;
       
-      setIsCompleted(true);
-      
-      // Redirection après un court délai
-      setTimeout(() => {
-        // Vérifier s'il y a une leçon suivante dans ce chapitre
-        if (lesson.nextLessonId) {
-          router.push(`/courses/${courseId}/chapters/${chapterId}/lessons/${lesson.nextLessonId}`);
-        } else {
-          // Rediriger vers la page du cours plutôt que celle du chapitre
-          // puisque nous avions décidé de ne pas utiliser la page de chapitre
-          router.push(`/courses/${courseId}`);
+      try {
+        // Tentative d'appel API pour marquer comme terminée selon le type de leçon
+        switch (lesson.type.toLowerCase()) {
+          case 'exercice':
+          case 'exercise':
+            await exerciseService.completeExercice(lessonId);
+            break;
+          case 'quiz':
+            await quizzesService.completeQuiz(lessonId);
+            break;
+          case 'lecture':
+          default:
+            await lecturesService.completeLecture(lessonId);
+            break;
         }
-      }, 1500);
+        completionSuccess = true;
+        console.log("Leçon marquée comme terminée via l'API spécialisée");
+      } catch (apiError) {
+        // Vérifier si c'est parce que l'endpoint n'existe pas
+        if (apiError.message === 'ENDPOINT_NOT_AVAILABLE') {
+          console.warn("Endpoint de complétion spécialisé non disponible, essai de l'endpoint générique");
+          
+          // Fallback: Essayer d'utiliser l'endpoint générique de leçon si disponible
+          try {
+            await lessonService.completeLessonById(lessonId);
+            completionSuccess = true;
+            console.log("Leçon marquée comme terminée via l'API générique");
+          } catch (genericError) {
+            if (genericError.message === 'ENDPOINT_NOT_AVAILABLE') {
+              console.warn("Endpoint de complétion générique non disponible, utilisation du stockage local");
+              // Fallback final: Marquer comme complété côté front seulement
+              completionSuccess = true;
+              console.log("Leçon marquée comme terminée côté front uniquement");
+            } else {
+              throw genericError; // Re-lancer si c'est une vraie erreur
+            }
+          }
+        } else {
+          throw apiError; // Re-lancer si c'est une vraie erreur
+        }
+      }
+      
+      if (completionSuccess) {
+        setIsCompleted(true);
+        
+        // Stocker l'état de complétion dans localStorage pour persistance
+        markLessonAsCompleted(lessonId, {
+          courseId,
+          chapterId,
+          lessonType: lesson.type,
+          lessonTitle: lesson.title
+        });
+        
+        // Afficher un message de succès
+        alert("Leçon terminée avec succès!");
+        
+        // Redirection après un court délai
+        setTimeout(() => {
+          // Retour à la page du cours
+          router.push(`/courses/${courseId}`);
+        }, 1500);
+      }
     } catch (err) {
       console.error("Erreur lors de la complétion de la leçon:", err);
-      alert("Une erreur est survenue. Veuillez réessayer.");
+      alert("Une erreur est survenue lors de la validation. Veuillez réessayer.");
     }
   };
 

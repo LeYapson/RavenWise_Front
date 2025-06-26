@@ -19,20 +19,25 @@ export default function DiscussionForm({ onSuccess }) {
     try {
       const tagsArray = tags.split(',').map(tag => tag.trim()).filter(Boolean);
       
-      await communityService.createPublication({
+      const publicationData = {
         title,
-        content,
+        description: content, // Utiliser 'description' au lieu de 'content' selon l'API
         tags: tagsArray,
-        authorId: currentUser.id, // Utiliser l'ID du système actuel
-        createdAt: new Date().toISOString()
-      });
+        authorId: currentUser.id
+      };
+      
+      console.log('[DEBUG] Données de publication à envoyer:', publicationData);
+      
+      await communityService.createPublication(publicationData);
       
       setTitle('');
       setContent('');
       setTags('');
       if (onSuccess) onSuccess();
     } catch (err) {
-      setError(err.message || "Une erreur est survenue lors de la création de la discussion");
+      console.error("Erreur lors de la création:", err);
+      console.error("Détails de l'erreur:", err.response?.data);
+      setError(err.response?.data?.message || err.message || "Une erreur est survenue lors de la création de la discussion");
     } finally {
       setLoading(false);
     }
@@ -62,12 +67,13 @@ export default function DiscussionForm({ onSuccess }) {
         </div>
         
         <div className="mb-4">
-          <label htmlFor="content" className="block text-gray-300 mb-2">Contenu</label>
+          <label htmlFor="content" className="block text-gray-300 mb-2">Description</label>
           <textarea
             id="content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             className="w-full bg-[#1D2D40] border border-gray-700 rounded-md px-4 py-2 text-white min-h-[120px]"
+            placeholder="Décrivez votre discussion..."
             required
           ></textarea>
         </div>

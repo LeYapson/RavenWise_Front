@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { userService, courseService } from '../../services/api'; // Importez vos services API
+import { userService, courseService, communityService } from '../../services/api'; // Importez vos services API
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Card from "../../components/common/Card";
@@ -11,6 +11,8 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalCourses: 0,
+    totalPublications: 0,
+    totalMessages: 0,
     // Autres statistiques...
   });
   
@@ -19,13 +21,19 @@ export default function AdminDashboard() {
     const fetchStats = async () => {
       try {
         // Récupérer les statistiques depuis vos services API
-        const usersData = await userService.getAllUsers();
-        const coursesData = await courseService.getAllCourses();
+        const [usersData, coursesData, publicationsData, messagesData] = await Promise.all([
+          userService.getAllUsers(),
+          courseService.getAllCourses(),
+          communityService.getAllPublications(),
+          communityService.getAllMessages()
+        ]);
         
         // Mettre à jour l'état avec les données récupérées
         setStats({
           totalUsers: usersData?.length || 0,
           totalCourses: coursesData?.length || 0,
+          totalPublications: publicationsData?.length || 0,
+          totalMessages: messagesData?.length || 0,
           // Autres statistiques à calculer...
         });
       } catch (error) {
@@ -47,6 +55,8 @@ export default function AdminDashboard() {
           {/* Cartes statistiques */}
           <StatCard title="Utilisateurs" value={stats.totalUsers} icon="👥" />
           <StatCard title="Cours" value={stats.totalCourses} icon="📚" />
+          <StatCard title="Publications" value={stats.totalPublications} icon="💬" />
+          <StatCard title="Messages" value={stats.totalMessages} icon="💭" />
         </div>
         
         {/* Autres contenus du dashboard */}
@@ -74,8 +84,8 @@ export default function AdminDashboard() {
                 color="bg-green-600"
               />
               <ActionButton 
-                label="Modérer le forum" 
-                href="/admin/forum" 
+                label="Modérer la communauté" 
+                href="/admin/community" 
                 icon="💬"
                 color="bg-yellow-600"
               />

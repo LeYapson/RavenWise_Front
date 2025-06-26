@@ -9,20 +9,22 @@ import { useClerkAuth } from '../../context/clerkContext';
 
 const Community = () => {
   const { currentUser, loading, isAuthenticated, logout } = useClerkAuth();
-  const [activeTab, setActiveTab] = useState('discussions');
   const [discussions, setDiscussions] = useState([]);
-  //const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [error, setError] = useState(null);
   const [showNewDiscussionForm, setShowNewDiscussionForm] = useState(false);
 
   useEffect(() => {
     const fetchDiscussions = async () => {
       try {
-        const fetchedDiscussions = await getDiscussions();
-        setDiscussions(fetchedDiscussions);
+        setError(null);
+        const fetchedDiscussions = await communityService.getAllPublications();
+        console.log("Publications récupérées:", fetchedDiscussions); // Debug
+        setDiscussions(Array.isArray(fetchedDiscussions) ? fetchedDiscussions : []);
       } catch (error) {
         console.error("Erreur lors de la récupération des discussions", error);
-      } finally {
-        setLoading(false);
+        setError("Impossible de charger les discussions. Veuillez réessayer.");
+        setDiscussions([]);
       }
     };
 
@@ -31,85 +33,129 @@ const Community = () => {
 
   const handleDiscussionCreated = async () => {
     setShowNewDiscussionForm(false);
-    setLoading(true);
-    const fetchedDiscussions = await getDiscussions();
-    setDiscussions(fetchedDiscussions);
-    setLoading(false);
+    try {
+      setError(null);
+      const fetchedDiscussions = await communityService.getAllPublications();
+      setDiscussions(Array.isArray(fetchedDiscussions) ? fetchedDiscussions : []);
+    } catch (error) {
+      console.error("Erreur lors du rechargement des discussions", error);
+      setError("Erreur lors du rechargement des discussions");
+    }
   };
 
+  // Filtrer les discussions selon le terme de recherche
+  const filteredDiscussions = discussions.filter(discussion =>
+    discussion.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    discussion.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    discussion.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    discussion.category?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const renderContent = () => {
-    switch (activeTab) {
-      case 'discussions':
-        return (
-          <div className="mb-8">
-            {loading ? (
-              <div className="text-center text-gray-300">Chargement...</div>
-            ) : (
-              discussions.map(discussion => (
-                <Link key={discussion.id} href={`/community/discussions/${discussion.id}`} className="block bg-white/10 backdrop-blur-md border border-gray-700 rounded-lg p-4 mb-6 shadow-md hover:shadow-lg transition-transform duration-300 hover:translate-y-[-5px]">
-                  <div className="flex justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-cover bg-center rounded-full" style={{ backgroundImage: `url(${discussion.author.avatar})` }}></div>
-                      <div>
-                        <div className="font-semibold text-white">{discussion.author.name}</div>
-                        <div className="text-sm text-gray-400">{discussion.date}</div>
-                      </div>
+    return (
+      <div className="mb-8">
+        {error && (
+          <div className="bg-red-500/10 border border-red-500 text-red-500 p-4 rounded-md mb-6">
+            {error}
+          </div>
+        )}
+        
+        {loading ? (
+          <div className="text-center text-gray-300 py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#FDC758] mx-auto mb-4"></div>
+            Chargement des discussions...
+          </div>
+        ) : filteredDiscussions.length === 0 ? (
+          <div className="text-center text-gray-400 py-12">
+            <div className="text-6xl mb-4">💬</div>
+            <h3 className="text-xl font-semibold mb-2">Aucune discussion trouvée</h3>
+            <p className="text-gray-500">
+              {searchTerm ? 'Essayez avec d\'autres mots-clés' : 'Soyez le premier à lancer une discussion !'}
+            </p>
+          </div>
+        ) : (
+          filteredDiscussions.map(discussion => (
+            <Link key={discussion.id} href={`/community/discussions/${discussion.id}`} className="block bg-white/10 backdrop-blur-md border border-gray-700 rounded-lg p-6 mb-6 shadow-md hover:shadow-lg transition-all duration-300 hover:translate-y-[-2px] hover:border-[#FDC758]/50">
+              <div className="flex justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#FDC758] to-[#f4a23a] rounded-full flex items-center justify-center text-[#0F1B2A] font-bold text-lg">
+                    {discussion.author?.firstName ? 
+                      discussion.author.firstName.charAt(0).toUpperCase() : 
+                      (discussion.authorName ? discussion.authorName.charAt(0).toUpperCase() : '?')
+                    }
+                  </div>
+                  <div>
+                    <div className="font-semibold text-white">
+                      {discussion.author?.firstName && discussion.author?.lastName ? 
+                        `${discussion.author.firstName} ${discussion.author.lastName}` : 
+                        (discussion.authorName || 'Utilisateur anonyme')
+                      }
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      {new Date(discussion.createdAt || discussion.date).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      })}
                     </div>
                   </div>
-                  <div className="text-xl font-semibold mb-2 text-white">{discussion.title}</div>
-                  <p className="text-gray-300 mb-4">{discussion.content}</p>
-                  <div className="flex justify-between text-sm text-gray-300">
-                    <div className="flex gap-2">
-                      {discussion.tags.map((tag, index) => (
-                        <span key={index} className="bg-white/10 text-gray-300 rounded-full px-3 py-1">{tag}</span>
-                      ))}
-                    </div>
-                    <div className="flex gap-4">
-                      <span>💬 {discussion.replies}</span>
-                      <span>👁️ {discussion.views}</span>
-                      <span>❤️ {discussion.likes}</span>
-                    </div>
-                  </div>
-                </Link>
-              ))
-            )}
-          </div>
-        );
-
-      case 'members':
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {/* Code pour les membres actifs */}
-          </div>
-        );
-
-      case 'events':
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {/* Code pour les événements */}
-          </div>
-        );
-
-      case 'projects':
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {/* Code pour les projets */}
-          </div>
-        );
-
-      default:
-        return <div>Contenu non disponible</div>;
-    }
+                </div>
+                
+                {discussion.category && (
+                  <span className="bg-[#FDC758]/20 text-[#FDC758] px-3 py-1 rounded-full text-sm font-medium">
+                    {discussion.category}
+                  </span>
+                )}
+              </div>
+              
+              <div className="text-xl font-semibold mb-3 text-white line-clamp-2">
+                {discussion.title}
+              </div>
+              
+              <p className="text-gray-300 mb-4 line-clamp-3">
+                {discussion.description || discussion.content}
+              </p>
+              
+              <div className="flex justify-between items-center text-sm text-gray-400">
+                <div className="flex gap-2 flex-wrap">
+                  {discussion.tags && Array.isArray(discussion.tags) && discussion.tags.map((tag, index) => (
+                    <span key={index} className="bg-white/10 text-gray-300 rounded-full px-3 py-1 text-xs">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+                
+                <div className="flex gap-4 items-center">
+                  <span className="flex items-center gap-1">
+                    💬 {discussion.replies || 0}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    👁️ {discussion.views || 0}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    ❤️ {discussion.likes || 0}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          ))
+        )}
+      </div>
+    );
   };
 
   return (
     <>
       <Header />
       <div className="p-5 max-w-screen-xl mx-auto">
-        <h1 className="text-4xl text-center mb-6">Communauté RavenWise</h1>
+        {/* En-tête de la page */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2">Communauté RavenWise</h1>
+          <p className="text-gray-400 text-lg">Échangez, apprenez et collaborez avec la communauté</p>
+        </div>
 
         {/* Bouton pour créer une discussion */}
-        {isAuthenticated && activeTab === 'discussions' && (
+        {isAuthenticated && (
           <div className="mb-6 flex justify-end">
             <button
               onClick={() => setShowNewDiscussionForm(!showNewDiscussionForm)}
@@ -125,41 +171,41 @@ const Community = () => {
           <DiscussionForm onSuccess={handleDiscussionCreated} />
         )}
 
-        {/* Navigation par onglets */}
-        <div className="flex border-b border-gray-700 mb-6 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('discussions')}
-            className={`px-4 py-2 text-lg ${activeTab === 'discussions' ? 'text-yellow-300 font-semibold border-b-2 border-yellow-300' : 'text-gray-400'}`}
-          >
-            Discussions
-          </button>
-          <button
-            onClick={() => setActiveTab('members')}
-            className={`px-4 py-2 text-lg ${activeTab === 'members' ? 'text-yellow-300 font-semibold border-b-2 border-yellow-300' : 'text-gray-400'}`}
-          >
-            Membres Actifs
-          </button>
-          <button
-            onClick={() => setActiveTab('events')}
-            className={`px-4 py-2 text-lg ${activeTab === 'events' ? 'text-yellow-300 font-semibold border-b-2 border-yellow-300' : 'text-gray-400'}`}
-          >
-            Événements
-          </button>
-          <button
-            onClick={() => setActiveTab('projects')}
-            className={`px-4 py-2 text-lg ${activeTab === 'projects' ? 'text-yellow-300 font-semibold border-b-2 border-yellow-300' : 'text-gray-400'}`}
-          >
-            Projets Collaboratifs
-          </button>
-        </div>
-
+        {/* Barre de recherche */}
         <div className="relative mb-6">
           <input
             type="text"
-            placeholder={`Rechercher des ${activeTab === 'discussions' ? 'discussions' : activeTab === 'members' ? 'membres' : activeTab === 'events' ? 'événements' : 'projets'}...`}
-            className="w-full p-3 bg-white/10 backdrop-blur-md border border-gray-700 rounded-md text-gray-300 focus:outline-none focus:border-yellow-300"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Rechercher des discussions..."
+            className="w-full p-3 pl-10 bg-white/10 backdrop-blur-md border border-gray-700 rounded-md text-gray-300 focus:outline-none focus:border-yellow-300 transition-colors"
           />
           <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</div>
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Affichage du nombre de discussions */}
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-white">
+            Discussions 
+            {discussions.length > 0 && (
+              <span className="bg-[#FDC758]/20 text-[#FDC758] text-lg px-3 py-1 rounded-full ml-3">
+                {filteredDiscussions.length}
+              </span>
+            )}
+          </h2>
+          {searchTerm && (
+            <p className="text-gray-400">
+              {filteredDiscussions.length} résultat{filteredDiscussions.length !== 1 ? 's' : ''} pour "{searchTerm}"
+            </p>
+          )}
         </div>
 
         {renderContent()}

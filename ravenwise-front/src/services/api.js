@@ -208,6 +208,36 @@ export const lessonService = {
   getLessonByChapterId: async (chapterId) => {
     const response = await api.get(`/lessons?chapterId=${chapterId}`);
     return response.data;
+  },
+  // Nouvelle méthode pour récupérer une leçon par ID
+  getLessonById: async (id) => {
+    const response = await api.get(`/lessons/${id}`);
+    return response.data;
+  },
+  // Méthode pour marquer une leçon comme terminée (avec fallback)
+  completeLessonById: async (id) => {
+    try {
+      // Essayer l'endpoint générique de complétion de leçon
+      const response = await api.post(`/lessons/${id}/complete`);
+      return response.data;
+    } catch (error) {
+      // Si l'endpoint n'existe pas (404), lancer une erreur spécifique
+      if (error.response?.status === 404) {
+        throw new Error('ENDPOINT_NOT_AVAILABLE');
+      }
+      // Pour d'autres erreurs, les relancer
+      throw error;
+    }
+  },
+  // Nouvelle méthode pour mettre à jour une leçon
+  updateLesson: async (id, lessonData) => {
+    const response = await api.patch(`/lessons/${id}`, lessonData);
+    return response.data;
+  },
+  // Nouvelle méthode pour supprimer une leçon
+  deleteLesson: async (id) => {
+    const response = await api.delete(`/lessons/${id}`);
+    return response.data;
   }
 };
 
@@ -220,6 +250,21 @@ export const exerciseService = {
   getExcerciseById: async (id) => {
     const response = await api.get(`/exercices/${id}`);
     return response.data;
+  },
+  // Méthode pour marquer un exercice comme terminé (avec fallback)
+  completeExercice: async (id) => {
+    try {
+      // Essayer l'endpoint spécialisé d'abord
+      const response = await api.post(`/exercices/${id}/complete`);
+      return response.data;
+    } catch (error) {
+      // Si l'endpoint n'existe pas (404), lancer une erreur spécifique
+      if (error.response?.status === 404) {
+        throw new Error('ENDPOINT_NOT_AVAILABLE');
+      }
+      // Pour d'autres erreurs, les relancer
+      throw error;
+    }
   }
 };
 
@@ -232,6 +277,21 @@ export const lecturesService = {
   getLectureById: async (id) => {
     const response = await api.get(`/lectures/${id}`);
     return response.data;
+  },
+  // Méthode pour marquer une lecture comme terminée (avec fallback)
+  completeLecture: async (id) => {
+    try {
+      // Essayer l'endpoint spécialisé d'abord
+      const response = await api.post(`/lectures/${id}/complete`);
+      return response.data;
+    } catch (error) {
+      // Si l'endpoint n'existe pas (404), lancer une erreur spécifique
+      if (error.response?.status === 404) {
+        throw new Error('ENDPOINT_NOT_AVAILABLE');
+      }
+      // Pour d'autres erreurs, les relancer
+      throw error;
+    }
   }
 };
 
@@ -249,12 +309,33 @@ export const quizzesService = {
     const response = await api.post(`/quizzes/${quizId}/validate`, { answers });
     return response.data;
   },
-}
+  // Méthode pour récupérer un quiz par ID
+  getQuizById: async (id) => {
+    const response = await api.get(`/quizzes/${id}`);
+    return response.data;
+  },
+  // Méthode pour marquer un quiz comme terminé (avec fallback)
+  completeQuiz: async (id) => {
+    try {
+      // Essayer l'endpoint spécialisé d'abord
+      const response = await api.post(`/quizzes/${id}/complete`);
+      return response.data;
+    } catch (error) {
+      // Si l'endpoint n'existe pas (404), lancer une erreur spécifique
+      if (error.response?.status === 404) {
+        throw new Error('ENDPOINT_NOT_AVAILABLE');
+      }
+      // Pour d'autres erreurs, les relancer
+      throw error;
+    }
+  }
+};
 
 //services pour la communauté
 export const communityService = {
-  //publications
+  //publications - Support uniquement GET, POST, DELETE (pas d'UPDATE/PATCH)
   createPublication: async (publicationData) => {
+    console.log('[API] Création publication avec données:', publicationData);
     const response = await api.post('/publications', publicationData);
     return response.data;
   },
@@ -270,16 +351,13 @@ export const communityService = {
     const response = await api.get('/publications', { params: { category } });
     return response.data;
   },
-  updatePublication: async (id, publicationData) => {
-    const response = await api.patch(`/publications/${id}`, publicationData);
-    return response.data;
-  },
   deletePublication: async (id) => {
     const response = await api.delete(`/publications/${id}`);
     return response.data;
   },
-  //Messages
+  //Messages - Support uniquement GET, POST, DELETE (pas d'UPDATE/PATCH)
   createMessage: async (messageData) => {
+    console.log('[API] Création message avec données:', messageData);
     const response = await api.post('/messages', messageData);
     return response.data;
   },
@@ -293,10 +371,6 @@ export const communityService = {
   },
   getAllMessagesByPublicationId: async (publicationId) => {
     const response = await api.get(`/messages/publication/${publicationId}`);
-    return response.data;
-  },
-  updateMessage: async (id, messageData) => {
-    const response = await api.patch(`/messages/${id}`, messageData);
     return response.data;
   },
   deleteMessage: async (id) => {

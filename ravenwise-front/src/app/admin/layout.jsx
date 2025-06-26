@@ -33,7 +33,7 @@ function AdminSidebar() {
     { label: "Tableau de bord", href: "/admin", icon: "📊" },
     { label: "Cours", href: "/admin/courses", icon: "📚" },
     { label: "Utilisateurs", href: "/admin/users", icon: "👥" },
-    { label: "Forum", href: "/admin/forum", icon: "💬" },
+    { label: "Communauté", href: "/admin/community", icon: "💬" },
     { label: "Statistiques", href: "/admin/statistics", icon: "📈" },
   ];
   
