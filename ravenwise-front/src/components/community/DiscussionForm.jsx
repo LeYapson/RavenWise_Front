@@ -1,15 +1,27 @@
 // src/components/community/DiscussionForm.jsx
 import React, { useState } from 'react';
 import { useClerkAuth } from '../../context/clerkContext';
+import { useUser } from '@clerk/nextjs';
 import { communityService } from '../../services/api';
 
 export default function DiscussionForm({ onSuccess }) {
   const { currentUser } = useClerkAuth();
+  const { user: clerkUser } = useUser();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [tags, setTags] = useState('');
+  const [category, setCategory] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Categories disponibles selon l'erreur
+  const availableCategories = [
+    'web development',
+    'framework', 
+    'programming',
+    'data science',
+    'mobile development',
+    'design'
+  ];
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,22 +29,44 @@ export default function DiscussionForm({ onSuccess }) {
     setError(null);
     
     try {
-      const tagsArray = tags.split(',').map(tag => tag.trim()).filter(Boolean);
+      // Validation côté client
+      if (!category) {
+        setError('Veuillez sélectionner une catégorie');
+        setLoading(false);
+        return;
+      }
+
+      if (!clerkUser?.id) {
+        setError('Erreur d\'authentification. Veuillez vous reconnecter.');
+        setLoading(false);
+        return;
+      }
       
       const publicationData = {
         title,
-        description: content, // Utiliser 'description' au lieu de 'content' selon l'API
-        tags: tagsArray,
-        authorId: currentUser.id
+        description: content,
+        category,
+        authorClerkId: clerkUser.id, // Utiliser l'ID Clerk directement
+        // Essayer d'ajouter les informations de l'auteur pour faciliter l'affichage
+        // Si l'API rejette authorName, nous pourrions le retirer
+        ...(clerkUser.fullName || clerkUser.firstName ? {
+          authorName: clerkUser.fullName || `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || clerkUser.firstName || 'Utilisateur'
+        } : {}),
+        // Ajouter l'image de profil si disponible
+        ...(clerkUser.imageUrl ? {
+          authorImageUrl: clerkUser.imageUrl
+        } : {}),
+        // Ne pas envoyer de tags selon l'erreur "property tags should not exist"
       };
       
       console.log('[DEBUG] Données de publication à envoyer:', publicationData);
+      console.log('[DEBUG] Utilisateur Clerk:', clerkUser);
       
       await communityService.createPublication(publicationData);
       
       setTitle('');
       setContent('');
-      setTags('');
+      setCategory('');
       if (onSuccess) onSuccess();
     } catch (err) {
       console.error("Erreur lors de la création:", err);
@@ -79,15 +113,21 @@ export default function DiscussionForm({ onSuccess }) {
         </div>
         
         <div className="mb-6">
-          <label htmlFor="tags" className="block text-gray-300 mb-2">Tags (séparés par des virgules)</label>
-          <input
-            type="text"
-            id="tags"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
+          <label htmlFor="category" className="block text-gray-300 mb-2">Catégorie <span className="text-red-400">*</span></label>
+          <select
+            id="category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
             className="w-full bg-[#1D2D40] border border-gray-700 rounded-md px-4 py-2 text-white"
-            placeholder="React, JavaScript, API..."
-          />
+            required
+          >
+            <option value="">Sélectionner une catégorie</option>
+            {availableCategories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+              </option>
+            ))}
+          </select>
         </div>
         
         <button

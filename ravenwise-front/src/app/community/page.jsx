@@ -20,6 +20,7 @@ const Community = () => {
         setError(null);
         const fetchedDiscussions = await communityService.getAllPublications();
         console.log("Publications récupérées:", fetchedDiscussions); // Debug
+        console.log("Structure d'une publication:", fetchedDiscussions[0]); // Debug structure
         setDiscussions(Array.isArray(fetchedDiscussions) ? fetchedDiscussions : []);
       } catch (error) {
         console.error("Erreur lors de la récupération des discussions", error);
@@ -74,32 +75,101 @@ const Community = () => {
             </p>
           </div>
         ) : (
-          filteredDiscussions.map(discussion => (
-            <Link key={discussion.id} href={`/community/discussions/${discussion.id}`} className="block bg-white/10 backdrop-blur-md border border-gray-700 rounded-lg p-6 mb-6 shadow-md hover:shadow-lg transition-all duration-300 hover:translate-y-[-2px] hover:border-[#FDC758]/50">
-              <div className="flex justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#FDC758] to-[#f4a23a] rounded-full flex items-center justify-center text-[#0F1B2A] font-bold text-lg">
-                    {discussion.author?.firstName ? 
-                      discussion.author.firstName.charAt(0).toUpperCase() : 
-                      (discussion.authorName ? discussion.authorName.charAt(0).toUpperCase() : '?')
-                    }
-                  </div>
-                  <div>
-                    <div className="font-semibold text-white">
-                      {discussion.author?.firstName && discussion.author?.lastName ? 
-                        `${discussion.author.firstName} ${discussion.author.lastName}` : 
-                        (discussion.authorName || 'Utilisateur anonyme')
-                      }
+          filteredDiscussions.map(discussion => {
+            // Debug pour voir la structure des données
+            console.log('[DEBUG] Discussion data:', discussion);
+            console.log('[DEBUG] Author data:', discussion.author);
+            console.log('[DEBUG] AuthorName:', discussion.authorName);
+            
+            // Fonction pour formater la date
+            const formatDate = (dateString) => {
+              if (!dateString) return 'Date inconnue';
+              try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return 'Date invalide';
+                return date.toLocaleDateString('fr-FR', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
+                });
+              } catch (error) {
+                return 'Date invalide';
+              }
+            };
+
+            // Fonction pour obtenir le nom de l'auteur
+            const getAuthorName = () => {
+              // Vérifier s'il y a un objet author complet
+              if (discussion.author?.firstName && discussion.author?.lastName) {
+                return `${discussion.author.firstName} ${discussion.author.lastName}`;
+              }
+              // Vérifier s'il y a un nom dans l'objet author
+              if (discussion.author?.name) {
+                return discussion.author.name;
+              }
+              // Vérifier s'il y a un nom d'auteur direct
+              if (discussion.authorName) {
+                return discussion.authorName;
+              }
+              // Vérifier s'il y a juste un prénom
+              if (discussion.author?.firstName) {
+                return discussion.author.firstName;
+              }
+              return 'Utilisateur anonyme';
+            };
+
+            // Fonction pour obtenir l'initiale de l'auteur
+            const getAuthorInitial = () => {
+              const authorName = getAuthorName();
+              return authorName && authorName !== 'Utilisateur anonyme' ? 
+                authorName.charAt(0).toUpperCase() : '?';
+            };
+
+            // Fonction pour obtenir l'image de profil de l'auteur
+            const getAuthorImage = () => {
+              return discussion.author?.imageUrl || 
+                     discussion.author?.profileImageUrl || 
+                     discussion.authorImageUrl || 
+                     null;
+            };
+
+            return (
+              <Link key={discussion.id} href={`/community/discussions/${discussion.id}`} className="block bg-white/10 backdrop-blur-md border border-gray-700 rounded-lg p-6 mb-6 shadow-md hover:shadow-lg transition-all duration-300 hover:translate-y-[-2px] hover:border-[#FDC758]/50">
+                <div className="flex justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-[#FDC758]/30 relative">
+                      {getAuthorImage() ? (
+                        <>
+                          <img 
+                            src={getAuthorImage()} 
+                            alt={getAuthorName()}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Si l'image ne charge pas, cacher l'image et montrer l'avatar
+                              e.target.style.display = 'none';
+                              const avatarDiv = e.target.parentNode.querySelector('.avatar-fallback');
+                              if (avatarDiv) avatarDiv.style.display = 'flex';
+                            }}
+                          />
+                          <div className="avatar-fallback w-12 h-12 bg-gradient-to-br from-[#FDC758] to-[#f4a23a] rounded-full flex items-center justify-center text-[#0F1B2A] font-bold text-lg absolute top-0 left-0" style={{display: 'none'}}>
+                            {getAuthorInitial()}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-12 h-12 bg-gradient-to-br from-[#FDC758] to-[#f4a23a] rounded-full flex items-center justify-center text-[#0F1B2A] font-bold text-lg">
+                          {getAuthorInitial()}
+                        </div>
+                      )}
                     </div>
-                    <div className="text-sm text-gray-400">
-                      {new Date(discussion.createdAt || discussion.date).toLocaleDateString('fr-FR', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
-                      })}
+                    <div>
+                      <div className="font-semibold text-white">
+                        {getAuthorName()}
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        {formatDate(discussion.createdAt || discussion.updatedAt || discussion.date)}
+                      </div>
                     </div>
                   </div>
-                </div>
                 
                 {discussion.category && (
                   <span className="bg-[#FDC758]/20 text-[#FDC758] px-3 py-1 rounded-full text-sm font-medium">
@@ -127,7 +197,7 @@ const Community = () => {
                 
                 <div className="flex gap-4 items-center">
                   <span className="flex items-center gap-1">
-                    💬 {discussion.replies || 0}
+                    💬 {discussion.messagesCount || discussion.replies || discussion._count?.messages || 0}
                   </span>
                   <span className="flex items-center gap-1">
                     👁️ {discussion.views || 0}
@@ -138,9 +208,10 @@ const Community = () => {
                 </div>
               </div>
             </Link>
-          ))
-        )}
-      </div>
+          );
+        })
+      )}
+    </div>
     );
   };
 

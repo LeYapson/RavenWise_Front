@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.59:3000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 // Créer une instance axios avec configuration de base
 const api = axios.create({
@@ -8,6 +8,28 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json'
   }
+});
+
+// Intercepteur pour ajouter le token d'authentification
+let getToken = null;
+
+// Fonction pour définir le getter de token (sera appelée depuis le contexte Clerk)
+export const setTokenGetter = (tokenGetter) => {
+  getToken = tokenGetter;
+};
+
+api.interceptors.request.use(async (config) => {
+  if (typeof window !== 'undefined' && getToken) {
+    try {
+      const token = await getToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.warn('Impossible de récupérer le token d\'authentification:', error);
+    }
+  }
+  return config;
 });
 
 // Services pour les cours
@@ -341,11 +363,86 @@ export const communityService = {
   },
   getAllPublications: async () => {
     const response = await api.get('/publications');
-    return response.data;
+    const publications = response.data;
+    
+    // Enrichir chaque publication avec le nombre de messages et les informations de l'auteur
+    if (Array.isArray(publications)) {
+      const enrichedPublications = await Promise.all(
+        publications.map(async (publication) => {
+          try {
+            // Récupérer les messages pour cette publication
+            const messages = await communityService.getAllMessagesByPublicationId(publication.id);
+            
+            // Enrichir avec les informations de l'auteur si elles manquent
+            let enrichedPublication = {
+              ...publication,
+              messagesCount: Array.isArray(messages) ? messages.length : 0
+            };
+            
+            // Si on n'a pas d'informations complètes sur l'auteur, essayer de les récupérer
+            if (publication.authorClerkId && (!publication.author || !publication.author.firstName)) {
+              try {
+                const authorData = await userService.getUserByClerkId(publication.authorClerkId);
+                enrichedPublication = {
+                  ...enrichedPublication,
+                  author: {
+                    ...publication.author,
+                    firstName: authorData.firstName,
+                    lastName: authorData.lastName,
+                    name: authorData.firstName && authorData.lastName ? 
+                      `${authorData.firstName} ${authorData.lastName}` : 
+                      authorData.firstName || 'Utilisateur',
+                    imageUrl: authorData.imageUrl,
+                    clerkId: authorData.clerkId
+                  }
+                };
+              } catch (userError) {
+                console.warn(`Impossible de récupérer les informations de l'auteur ${publication.authorClerkId}:`, userError);
+              }
+            }
+            
+            return enrichedPublication;
+          } catch (error) {
+            console.warn(`Impossible de récupérer les messages pour la publication ${publication.id}:`, error);
+            return {
+              ...publication,
+              messagesCount: 0
+            };
+          }
+        })
+      );
+      return enrichedPublications;
+    }
+    
+    return publications;
   },
   getPublicationById: async (id) => {
     const response = await api.get(`/publications/${id}`);
-    return response.data;
+    const publication = response.data;
+    
+    // Enrichir avec les informations de l'auteur si elles manquent
+    if (publication.authorClerkId && (!publication.author || !publication.author.firstName)) {
+      try {
+        const authorData = await userService.getUserByClerkId(publication.authorClerkId);
+        return {
+          ...publication,
+          author: {
+            ...publication.author,
+            firstName: authorData.firstName,
+            lastName: authorData.lastName,
+            name: authorData.firstName && authorData.lastName ? 
+              `${authorData.firstName} ${authorData.lastName}` : 
+              authorData.firstName || 'Utilisateur',
+            imageUrl: authorData.imageUrl,
+            clerkId: authorData.clerkId
+          }
+        };
+      } catch (userError) {
+        console.warn(`Impossible de récupérer les informations de l'auteur ${publication.authorClerkId}:`, userError);
+      }
+    }
+    
+    return publication;
   },
   getAllPublicationsByCategory: async (category) => {
     const response = await api.get('/publications', { params: { category } });
@@ -371,7 +468,41 @@ export const communityService = {
   },
   getAllMessagesByPublicationId: async (publicationId) => {
     const response = await api.get(`/messages/publication/${publicationId}`);
-    return response.data;
+    const messages = response.data;
+    
+    // Enrichir chaque message avec les informations de l'auteur si elles manquent
+    if (Array.isArray(messages)) {
+      const enrichedMessages = await Promise.all(
+        messages.map(async (message) => {
+          // Si on n'a pas d'informations complètes sur l'auteur, essayer de les récupérer
+          if (message.authorClerkId && (!message.author || !message.author.firstName)) {
+            try {
+              const authorData = await userService.getUserByClerkId(message.authorClerkId);
+              return {
+                ...message,
+                author: {
+                  ...message.author,
+                  firstName: authorData.firstName,
+                  lastName: authorData.lastName,
+                  name: authorData.firstName && authorData.lastName ? 
+                    `${authorData.firstName} ${authorData.lastName}` : 
+                    authorData.firstName || 'Utilisateur',
+                  imageUrl: authorData.imageUrl,
+                  clerkId: authorData.clerkId
+                }
+              };
+            } catch (userError) {
+              console.warn(`Impossible de récupérer les informations de l'auteur du message ${message.authorClerkId}:`, userError);
+              return message;
+            }
+          }
+          return message;
+        })
+      );
+      return enrichedMessages;
+    }
+    
+    return messages;
   },
   deleteMessage: async (id) => {
     const response = await api.delete(`/messages/${id}`);

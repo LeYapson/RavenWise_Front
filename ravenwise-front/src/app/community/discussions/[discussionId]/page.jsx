@@ -22,6 +22,42 @@ export default function DiscussionDetailPage() {
   const [submittingMessage, setSubmittingMessage] = useState(false);
   const [deletingDiscussion, setDeletingDiscussion] = useState(false);
 
+  // Fonctions helper pour les noms d'auteurs
+  const getAuthorName = (authorData) => {
+    // Pour les discussions, les données sont dans authorData.author
+    const author = authorData?.author || authorData;
+    
+    if (author?.firstName && author?.lastName) {
+      return `${author.firstName} ${author.lastName}`;
+    }
+    if (author?.name) {
+      return author.name;
+    }
+    if (authorData?.authorName) {
+      return authorData.authorName;
+    }
+    if (author?.firstName) {
+      return author.firstName;
+    }
+    return 'Utilisateur anonyme';
+  };
+
+  const getAuthorInitial = (authorData) => {
+    const authorName = getAuthorName(authorData);
+    return authorName && authorName !== 'Utilisateur anonyme' ? 
+      authorName.charAt(0).toUpperCase() : '?';
+  };
+
+  const getAuthorImage = (authorData) => {
+    // Pour les discussions, les données sont dans authorData.author
+    const author = authorData?.author || authorData;
+    
+    return author?.imageUrl || 
+           author?.profileImageUrl || 
+           authorData?.authorImageUrl || 
+           null;
+  };
+
   // Log de débogage au rendu (peut être supprimé en production)
   console.log('[RENDER] DiscussionDetailPage rendering with:', {
     isAuthenticated,
@@ -73,16 +109,18 @@ export default function DiscussionDetailPage() {
     if (currentUser && discussion) {
       console.log('=== DEBUG PERMISSIONS ===');
       console.log('Current user:', currentUser);
-      console.log('Current user ID:', currentUser.id, typeof currentUser.id);
+      console.log('Current user clerkId:', currentUser.clerkId, typeof currentUser.clerkId);
       console.log('Current user role:', currentUser.role);
       console.log('isAdmin from context:', isAdmin);
       console.log('Discussion:', discussion);
       console.log('Discussion authorId (author.clerkId):', discussion.author?.clerkId, typeof discussion.author?.clerkId);
       console.log('Discussion authorId (legacy authorId):', discussion.authorId, typeof discussion.authorId);
       const authorId = discussion?.author?.clerkId || discussion?.authorId;
+      const currentUserId = currentUser?.clerkId;
       console.log('Final authorId used:', authorId, typeof authorId);
-      console.log('ID comparison result:', String(authorId) === String(currentUser.id));
-      console.log('Final permission check:', isAdmin || String(authorId) === String(currentUser.id));
+      console.log('Final currentUserId used:', currentUserId, typeof currentUserId);
+      console.log('ID comparison result:', String(authorId) === String(currentUserId));
+      console.log('Final permission check:', isAdmin || String(authorId) === String(currentUserId));
       console.log('========================');
     }
   }, [currentUser, discussion, isAdmin]);
@@ -91,7 +129,8 @@ export default function DiscussionDetailPage() {
   const canDeleteDiscussion = () => {
     // L'authorId est dans discussion.author.clerkId selon l'API
     const authorId = discussion?.author?.clerkId || discussion?.authorId;
-    const isAuthor = isAuthenticated && currentUser && String(authorId) === String(currentUser.id);
+    const currentUserId = currentUser?.clerkId;
+    const isAuthor = isAuthenticated && currentUser && String(authorId) === String(currentUserId);
     const canDelete = isAuthor || isAdmin;
     console.log('[PERMISSION CHECK] Can delete discussion?', {
       isAuthenticated,
@@ -99,9 +138,9 @@ export default function DiscussionDetailPage() {
       isAdmin,
       discussionAuthorId: authorId,
       discussionAuthorPath: 'discussion.author.clerkId',
-      currentUserId: currentUser?.id,
+      currentUserId: currentUserId,
       isAuthor,
-      stringComparison: String(authorId) === String(currentUser?.id),
+      stringComparison: String(authorId) === String(currentUserId),
       finalResult: canDelete
     });
     return canDelete;
@@ -111,7 +150,8 @@ export default function DiscussionDetailPage() {
   const canDeleteMessage = (message) => {
     // L'authorId peut être dans message.author.clerkId ou message.authorId selon l'API
     const authorId = message?.author?.clerkId || message?.authorId;
-    const isAuthor = isAuthenticated && currentUser && String(authorId) === String(currentUser.id);
+    const currentUserId = currentUser?.clerkId;
+    const isAuthor = isAuthenticated && currentUser && String(authorId) === String(currentUserId);
     const canDelete = isAuthor || isAdmin;
     console.log('[PERMISSION CHECK] Can delete message?', {
       messageId: message?.id,
@@ -120,9 +160,9 @@ export default function DiscussionDetailPage() {
       isAdmin,
       messageAuthorId: authorId,
       messageAuthorPath: 'message.author.clerkId or message.authorId',
-      currentUserId: currentUser?.id,
+      currentUserId: currentUserId,
       isAuthor,
-      stringComparison: String(authorId) === String(currentUser?.id),
+      stringComparison: String(authorId) === String(currentUserId),
       finalResult: canDelete
     });
     return canDelete;
@@ -138,8 +178,8 @@ export default function DiscussionDetailPage() {
       // Créer le message avec les champs corrects selon l'API
       const messageData = {
         text: newMessage, // Utiliser 'text' au lieu de 'content' selon l'API
-        publicationId: discussionId,
-        authorId: currentUser.id
+        publicationId: parseInt(discussionId, 10), // S'assurer que c'est un nombre
+        authorClerkId: currentUser?.clerkId // Utiliser uniquement clerkId
       };
       
       console.log('[DEBUG] Données du message à envoyer:', messageData);
@@ -249,18 +289,33 @@ export default function DiscussionDetailPage() {
             {/* En-tête de la discussion */}
             <div className="flex justify-between items-start mb-6">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-[#FDC758] to-[#f4a23a] rounded-full flex items-center justify-center text-[#0F1B2A] font-bold text-xl">
-                  {discussion.author?.firstName ? 
-                    discussion.author.firstName.charAt(0).toUpperCase() : 
-                    (discussion.authorName ? discussion.authorName.charAt(0).toUpperCase() : '?')
-                  }
+                <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border-2 border-[#FDC758]/30 relative">
+                  {getAuthorImage(discussion) ? (
+                    <>
+                      <img 
+                        src={getAuthorImage(discussion)} 
+                        alt="Photo de profil"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Si l'image ne charge pas, cacher l'image et montrer l'avatar
+                          e.target.style.display = 'none';
+                          const avatarDiv = e.target.parentNode.querySelector('.avatar-fallback');
+                          if (avatarDiv) avatarDiv.style.display = 'flex';
+                        }}
+                      />
+                      <div className="avatar-fallback w-16 h-16 bg-gradient-to-br from-[#FDC758] to-[#f4a23a] rounded-full flex items-center justify-center text-[#0F1B2A] font-bold text-xl absolute top-0 left-0" style={{display: 'none'}}>
+                        {getAuthorInitial(discussion)}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-16 h-16 bg-gradient-to-br from-[#FDC758] to-[#f4a23a] rounded-full flex items-center justify-center text-[#0F1B2A] font-bold text-xl">
+                      {getAuthorInitial(discussion)}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <h3 className="font-semibold text-white text-lg">
-                    {discussion.author?.firstName && discussion.author?.lastName ? 
-                      `${discussion.author.firstName} ${discussion.author.lastName}` : 
-                      (discussion.authorName || 'Utilisateur anonyme')
-                    }
+                    {getAuthorName(discussion)}
                   </h3>
                   <div className="flex items-center gap-4 text-sm text-gray-400">
                     <span className="flex items-center gap-1">
@@ -347,18 +402,33 @@ export default function DiscussionDetailPage() {
                   <div key={message.id} className="bg-white/5 border border-gray-700 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                          {message.author?.firstName ? 
-                            message.author.firstName.charAt(0).toUpperCase() : 
-                            (message.authorName ? message.authorName.charAt(0).toUpperCase() : '?')
-                          }
+                        <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-blue-500/30 relative">
+                          {getAuthorImage(message) ? (
+                            <>
+                              <img 
+                                src={getAuthorImage(message)} 
+                                alt="Photo de profil"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  // Si l'image ne charge pas, cacher l'image et montrer l'avatar
+                                  e.target.style.display = 'none';
+                                  const avatarDiv = e.target.parentNode.querySelector('.avatar-fallback');
+                                  if (avatarDiv) avatarDiv.style.display = 'flex';
+                                }}
+                              />
+                              <div className="avatar-fallback w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold absolute top-0 left-0" style={{display: 'none'}}>
+                                {getAuthorInitial(message)}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                              {getAuthorInitial(message)}
+                            </div>
+                          )}
                         </div>
                         <div>
                           <div className="font-medium text-white">
-                            {message.author?.firstName && message.author?.lastName ? 
-                              `${message.author.firstName} ${message.author.lastName}` : 
-                              (message.authorName || 'Utilisateur anonyme')
-                            }
+                            {getAuthorName(message)}
                           </div>
                           <div className="text-sm text-gray-400">
                             {new Date(message.createdAt).toLocaleDateString('fr-FR', {

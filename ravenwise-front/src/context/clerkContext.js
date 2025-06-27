@@ -4,6 +4,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { userService } from '../services/api';
+import { setTokenGetter } from '../services/api';
 
 // Créer le contexte
 const ClerkContext = createContext(undefined);
@@ -19,7 +20,7 @@ export const useClerkAuth = () => {
 
 export function ClerkProvider({ children }) {
   // États Clerk
-  const { isLoaded, userId, sessionId, signOut } = useAuth();
+  const { isLoaded, userId, sessionId, signOut, getToken: clerkGetToken } = useAuth();
   const { user } = useUser();
   
   // États internes
@@ -30,9 +31,17 @@ export function ClerkProvider({ children }) {
   // État d'authentification
   const isAuthenticated = !!userId;
   
+  // Configurer le getter de token pour l'API
+  useEffect(() => {
+    if (clerkGetToken) {
+      setTokenGetter(clerkGetToken);
+    }
+  }, [clerkGetToken]);
+  
   // Informations de l'utilisateur formatées depuis Clerk
   const clerkUser = user ? {
     id: user.id,
+    clerkId: user.id, // Ajouter clerkId pour compatibilité
     firstName: user.firstName,
     lastName: user.lastName,
     fullName: user.fullName,
