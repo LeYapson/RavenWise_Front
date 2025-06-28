@@ -13,7 +13,7 @@ import {
 import Header from '../../components/common/Header';
 import Footer from '../../components/common/Footer';
 import CourseCardSmall from '../../components/courses/CourseCardSmall';
-import { courseService, userService, exerciseService } from '../../services/api';
+import { courseService, userService, exercicesService } from '../../services/api';
 
 /**
  * DashboardPage - Page principale du tableau de bord utilisateur

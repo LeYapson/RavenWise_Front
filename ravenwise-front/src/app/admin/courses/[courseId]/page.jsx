@@ -4,7 +4,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { FiSave, FiArrowLeft, FiPlus, FiTrash2, FiEdit2, FiList, FiMove, FiLock, FiUnlock } from "react-icons/fi";
 import Card from "../../../../components/common/Card";
-import { courseService, chapterService, lessonService, quizzesService } from "../../../../services/api";
+import { courseService, chapterService, lessonService, quizzesService, exercicesService, lecturesService } from "../../../../services/api";
 
 export default function EditCoursePage() {
   const router = useRouter();
@@ -513,10 +513,79 @@ export default function EditCoursePage() {
             questions: lessonForm.questions, // Garder toutes les questions pour l'affichage
             quizId: quizResponse.id || quizResponse.quizId // Stocker l'ID du quiz pour référence future
           };
+        } else if (lessonForm.type === 'exercice') {
+          // PROBLÈME: L'API POST /lessons refuse les propriétés startingCode et solution
+          // Solution: Créer d'abord la leçon, puis ajouter les propriétés spécifiques via /exercices
+          
+          // Étape 1: Créer la leçon exercice de base (sans startingCode et solution)
+          const lessonExerciceData = {
+            title: lessonForm.title,
+            content: lessonForm.content,
+            type: lessonForm.type,
+            estimatedDuration: parseInt(lessonForm.estimatedDuration, 10),
+            chapterId: parseInt(selectedChapterId, 10)
+          };
+          
+          console.log("Création de la leçon exercice:", lessonExerciceData);
+          const createdLesson = await lessonService.createLesson(lessonExerciceData);
+          
+          // Étape 2: Ajouter les propriétés spécifiques à l'exercice
+          // D'après la structure de l'API, il faut inclure content et possiblement deposit
+          const exerciceData = {
+            lessonId: createdLesson.id,
+            startingCode: lessonForm.startingCode || "",
+            solution: lessonForm.solution || "",
+            content: lessonForm.content || "", // Contenu spécifique à l'exercice
+            deposit: "" // Champ qui semble requis d'après l'API
+          };
+          
+          console.log("=== TEST CRÉATION EXERCICE ===");
+          console.log("Données de l'exercice à créer:", exerciceData);
+          
+          try {
+            // Essayons avec le format complet incluant content et deposit
+            const exerciceResponse = await exercicesService.createExercice(exerciceData);
+            
+            // Fusionner les données pour l'affichage local
+            newLesson = {
+              ...createdLesson,
+              startingCode: lessonForm.startingCode || "",
+              solution: lessonForm.solution || "",
+              exerciceId: exerciceResponse.id || exerciceResponse.exerciceId
+            };
+            
+            console.log("✅ Exercice créé avec succès:", exerciceResponse);
+          } catch (exerciceError) {
+            console.error("❌ Échec avec le format standard, essayons la fonction de test:", exerciceError);
+            
+            // Si le format standard échoue, essayons la fonction de test
+            try {
+              const exerciceResponse = await exercicesService.testCreateExercice(exerciceData);
+              
+              newLesson = {
+                ...createdLesson,
+                startingCode: lessonForm.startingCode || "",
+                solution: lessonForm.solution || "",
+                exerciceId: exerciceResponse.id || exerciceResponse.exerciceId
+              };
+              
+              console.log("✅ Exercice créé avec succès via test:", exerciceResponse);
+            } catch (testError) {
+              console.error("❌ Échec de la création de l'exercice même avec la fonction de test:", testError);
+              
+              // En cas d'erreur, on garde au moins la leçon créée
+              newLesson = {
+                ...createdLesson,
+                startingCode: lessonForm.startingCode || "",
+                solution: lessonForm.solution || ""
+              };
+              alert("La leçon a été créée mais les propriétés spécifiques de l'exercice n'ont pas pu être sauvegardées. Consultez la console pour plus de détails.");
+            }
+          }
         } else {
-          // Pour les autres types, utiliser le service lesson standard (sans questions)
-          const { questions, ...lessonDataWithoutQuestions } = lessonData;
-          newLesson = await lessonService.createLesson(lessonDataWithoutQuestions);
+          // Pour les autres types (lecture), utiliser le service lesson standard
+          const { questions, startingCode, solution, ...lessonDataWithoutSpecificProps } = lessonData;
+          newLesson = await lessonService.createLesson(lessonDataWithoutSpecificProps);
         }
         
         // Ajouter manuellement les propriétés qui ne sont pas dans l'API

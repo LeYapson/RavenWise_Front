@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
-import { lessonService, exerciseService, lecturesService, quizzesService, courseService, chapterService } from '../../../../../../../services/api';
+import { lessonService, exercicesService, lecturesService, quizzesService, courseService, chapterService } from '../../../../../../../services/api';
 import Header from '../../../../../../../components/common/Header';
 import Footer from '../../../../../../../components/common/Footer';
 import LectureView from '../../../../../../../components/courses/lesson-types/LectureView';
@@ -49,7 +49,7 @@ export default function LessonPage() {
             switch (typeFromUrl.toLowerCase()) {
               case 'exercice':
               case 'exercise':
-                lessonData = await exerciseService.getExcerciseById(lessonId);
+                lessonData = await exercicesService.getExerciceById(lessonId);
                 lessonType = 'exercice';
                 break;
               case 'quiz':

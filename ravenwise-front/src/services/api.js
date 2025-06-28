@@ -238,11 +238,10 @@ export const lessonService = {
     const lesson = response.data;
     console.log(`[getLessonById] Leçon récupérée:`, lesson);
     
-    // Si c'est un quiz, récupérer aussi les questions
+    // Enrichir les données selon le type de leçon
     if (lesson.type === 'quiz') {
       console.log(`[getLessonById] Quiz détecté, récupération des questions pour la leçon ID ${lesson.id}`);
       try {
-        // Essayer d'abord avec l'endpoint by-lesson
         const quizResponse = await api.get(`/quizzes/by-lesson/${lesson.id}`);
         const quizData = quizResponse.data;
         console.log(`[getLessonById] Données quiz récupérées:`, quizData);
@@ -267,13 +266,38 @@ export const lessonService = {
           statusText: quizError.response?.statusText,
           data: quizError.response?.data
         });
-        
-        // Si l'erreur est 404, c'est probablement que l'endpoint n'existe pas
-        if (quizError.response?.status === 404) {
-          console.warn("[getLessonById] L'endpoint /quizzes/by-lesson/{lessonId} n'existe pas. Il faut l'implémenter côté backend.");
-        }
-        
         lesson.questions = [];
+      }
+    } else if (lesson.type === 'exercice') {
+      console.log(`[getLessonById] Exercice détecté, récupération des données pour la leçon ID ${lesson.id}`);
+      try {
+        const exerciceResponse = await api.get(`/exercices/by-lesson/${lesson.id}`);
+        const exerciceData = exerciceResponse.data;
+        console.log(`[getLessonById] Données exercice récupérées:`, exerciceData);
+        
+        // Enrichir la leçon avec les données spécifiques à l'exercice
+        lesson.startingCode = exerciceData.startingCode || '';
+        lesson.solution = exerciceData.solution || '';
+      } catch (exerciceError) {
+        console.error(`[getLessonById] Erreur lors du chargement des données pour l'exercice de la leçon ${id}:`, exerciceError);
+        lesson.startingCode = '';
+        lesson.solution = '';
+      }
+    } else if (lesson.type === 'lecture') {
+      console.log(`[getLessonById] Lecture détectée, récupération des données pour la leçon ID ${lesson.id}`);
+      try {
+        const lectureResponse = await api.get(`/lectures/by-lesson/${lesson.id}`);
+        const lectureData = lectureResponse.data;
+        console.log(`[getLessonById] Données lecture récupérées:`, lectureData);
+        
+        // Enrichir la leçon avec les données spécifiques à la lecture (si nécessaire)
+        // Par exemple, si la lecture a du contenu enrichi, des médias, etc.
+        if (lectureData.content) {
+          lesson.content = lectureData.content;
+        }
+      } catch (lectureError) {
+        console.error(`[getLessonById] Erreur lors du chargement des données pour la lecture de la leçon ${id}:`, lectureError);
+        // Pour les lectures, on garde le contenu de base de la leçon
       }
     }
     
@@ -302,38 +326,6 @@ export const lessonService = {
   }
 };
 
-//services pour les exercices
-export const exerciseService = {
-  createExercice: async (exerciseData) => {
-    const response = await api.post('/exercices', exerciseData);
-    return response.data;
-  },
-  getExcerciseById: async (id) => {
-    const response = await api.get(`/exercices/${id}`);
-    return response.data;
-  },
-  updateExercise: async (id, exerciseData) => {
-    const response = await api.patch(`/exercices/${id}`, exerciseData);
-    return response.data;
-  }
-};
-
-//services pour les lectures
-export const lecturesService = {
-  createLecture: async (lecturesData) => {
-    const response = await api.post('/lectures', lecturesData);
-    return response.data;
-  },
-  getLectureById: async (id) => {
-    const response = await api.get(`/lectures/${id}`);
-    return response.data;
-  },
-  updateLecture: async (id, lectureData) => {
-    const response = await api.patch(`/lectures/${id}`, lectureData);
-    return response.data;
-  }
-};
-
 //services pour les quizzes
 export const quizzesService = {
   getQuizByIdWithAnswers: async (id) => {
@@ -341,17 +333,9 @@ export const quizzesService = {
     return response.data;
   },
   getQuizByLessonId: async (lessonId) => {
-    // Essayer de récupérer le quiz associé à cette leçon
-    // ATTENTION: Cette méthode fait une supposition sur la structure de l'API
-    // Il faudrait idéalement un endpoint dédié /quizzes/by-lesson/{lessonId}
-    try {
-      const response = await api.get(`/quizzes/by-lesson/${lessonId}`);
-      return response.data;
-    } catch (error) {
-      // Si l'endpoint n'existe pas, essayer une approche alternative
-      console.warn(`Impossible de récupérer le quiz pour la leçon ${lessonId}:`, error);
-      throw error;
-    }
+    // Récupérer le quiz associé à cette leçon
+    const response = await api.get(`/quizzes/by-lesson/${lessonId}`);
+    return response.data;
   },
   createQuizAndAnswers: async (quizData) => {
     const response = await api.post('/quizzes/with-answers', quizData);
@@ -363,6 +347,147 @@ export const quizzesService = {
   },
   updateQuiz: async (id, quizData) => {
     const response = await api.patch(`/quizzes/${id}`, quizData);
+    return response.data;
+  }
+};
+
+//services pour les exercices
+export const exercicesService = {
+  getExerciceByLessonId: async (lessonId) => {
+    // Récupérer l'exercice associé à cette leçon
+    const response = await api.get(`/exercices/by-lesson/${lessonId}`);
+    return response.data;
+  },
+  createExercice: async (exerciceData) => {
+    console.log("=== API Call: POST /exercices ===");
+    
+    // Assurer que les champs requis sont présents d'après la structure API observée
+    const completeData = {
+      lessonId: exerciceData.lessonId,
+      startingCode: exerciceData.startingCode || "",
+      solution: exerciceData.solution || "",
+      content: exerciceData.content || "",
+      deposit: exerciceData.deposit || ""
+    };
+    
+    console.log("Payload being sent:", JSON.stringify(completeData, null, 2));
+    
+    try {
+      const response = await api.post('/exercices', completeData);
+      console.log("Response received:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("=== ERROR: POST /exercices ===");
+      console.error("Status:", error.response?.status);
+      console.error("Status Text:", error.response?.statusText);
+      console.error("Error Data:", error.response?.data);
+      console.error("Error Message:", error.message);
+      
+      // Log détaillé pour débogage
+      if (error.response?.data) {
+        console.error("Response body:", JSON.stringify(error.response.data, null, 2));
+      }
+      
+      throw error;
+    }
+  },
+  // Fonction de test pour différents formats
+  testCreateExercice: async (exerciceData) => {
+    const formats = [
+      { 
+        name: "complete_with_content_and_deposit", 
+        endpoint: "/exercices",
+        data: {
+          lessonId: exerciceData.lessonId,
+          startingCode: exerciceData.startingCode || "",
+          solution: exerciceData.solution || "",
+          content: exerciceData.content || "",
+          deposit: exerciceData.deposit || ""
+        }
+      },
+      { 
+        name: "camelCase_standard", 
+        endpoint: "/exercices",
+        data: exerciceData 
+      },
+      { 
+        name: "snake_case_standard", 
+        endpoint: "/exercices",
+        data: {
+          lesson_id: exerciceData.lessonId,
+          starting_code: exerciceData.startingCode,
+          solution: exerciceData.solution,
+          content: exerciceData.content || "",
+          deposit: exerciceData.deposit || ""
+        }
+      },
+      { 
+        name: "without_empty_strings", 
+        endpoint: "/exercices",
+        data: {
+          lessonId: exerciceData.lessonId,
+          ...(exerciceData.startingCode && { startingCode: exerciceData.startingCode }),
+          ...(exerciceData.solution && { solution: exerciceData.solution }),
+          ...(exerciceData.content && { content: exerciceData.content }),
+          ...(exerciceData.deposit && { deposit: exerciceData.deposit })
+        }
+      },
+      { 
+        name: "with_nulls", 
+        endpoint: "/exercices",
+        data: {
+          lessonId: exerciceData.lessonId,
+          startingCode: exerciceData.startingCode || null,
+          solution: exerciceData.solution || null,
+          content: exerciceData.content || null,
+          deposit: exerciceData.deposit || null
+        }
+      }
+    ];
+    
+    for (const format of formats) {
+      console.log(`=== TESTING FORMAT: ${format.name} ===`);
+      console.log("Endpoint:", format.endpoint);
+      console.log("Data:", JSON.stringify(format.data, null, 2));
+      
+      try {
+        const response = await api.post(format.endpoint, format.data);
+        console.log(`✅ SUCCESS with ${format.name}:`, response.data);
+        return response.data;
+      } catch (error) {
+        console.log(`❌ FAILED with ${format.name}:`, error.response?.status, error.response?.data || error.message);
+      }
+    }
+    
+    throw new Error("All formats failed");
+  },
+  getExerciceById: async (id) => {
+    const response = await api.get(`/exercices/${id}`);
+    return response.data;
+  },
+  getAllExercices: async () => {
+    const response = await api.get('/exercices');
+    return response.data;
+  },
+  updateExercice: async (id, exerciceData) => {
+    const response = await api.patch(`/exercices/${id}`, exerciceData);
+    return response.data;
+  }
+};
+
+//services pour les lectures
+export const lecturesService = {
+  getLectureByLessonId: async (lessonId) => {
+    // Récupérer la lecture associée à cette leçon
+    const response = await api.get(`/lectures/by-lesson/${lessonId}`);
+    return response.data;
+  },
+  createLecture: async (lectureData) => {
+    const response = await api.post('/lectures', lectureData);
+    return response.data;
+  },
+  updateLecture: async (id, lectureData) => {
+    const response = await api.patch(`/lectures/${id}`, lectureData);
     return response.data;
   }
 };

@@ -1,6 +1,6 @@
 # Gestion de la Complétion des Leçons
 
-Ce document explique comment fonctionne le système de complétion des leçons dans l'application RavenWise.
+Ce docum   - `exercices` via `exercicesService.getExerciceById(id)`nt explique comment fonctionne le système de complétion des leçons dans l'application RavenWise.
 
 ## Vue d'ensemble
 

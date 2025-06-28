@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { lessonService, exerciseService, lecturesService, quizzesService } from '../../services/api';
+import { lessonService, exercicesService, lecturesService, quizzesService } from '../../services/api';
 import Header from '../../components/common/Header';
 import Footer from '../../components/common/Footer';
 
@@ -32,7 +32,7 @@ export default function ApiTestPage() {
     // Test des exercices
     try {
       console.log('Test: getAllExercises...');
-      const exercises = await exerciseService.getAllExercises();
+      const exercises = await exercicesService.getAllExercices();
       results.exercises = { success: true, count: exercises?.length || 0 };
     } catch (error) {
       console.error('Erreur exercices:', error);
