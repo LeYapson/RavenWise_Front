@@ -5,6 +5,7 @@ import Header from '../../components/common/Header';
 import Footer from '../../components/common/Footer';
 import CourseCard from '../../components/courses/CourseCard';
 import LearningPathProgress from '../../components/courses/LearningPathProgress';
+import AuthGuard from '../../components/guards/AuthGuard';
 import { courseService, userService } from '../../services/api';
 import { useUser } from '@clerk/nextjs';
 
@@ -92,7 +93,7 @@ export default function CoursesPage() {
     : courses.filter(course => course.category === activeCategory);
 
   return (
-    <>
+    <AuthGuard>
       <Header />
       <main className="min-h-screen bg-[#0c1524] text-white py-10">
         <div className="max-w-7xl mx-auto px-4">
@@ -172,6 +173,6 @@ export default function CoursesPage() {
         </div>
       </main>
       <Footer />
-    </>
+    </AuthGuard>
   );
 }

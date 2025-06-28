@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Header from '../../components/common/Header';
 import Footer from '../../components/common/Footer';
 import DiscussionForm from '../../components/community/DiscussionForm';
+import AuthGuard from '../../components/guards/AuthGuard';
 import { communityService } from '../../services/api';
 import { useClerkAuth } from '../../context/clerkContext';
 
@@ -216,7 +217,7 @@ const Community = () => {
   };
 
   return (
-    <>
+    <AuthGuard>
       <Header />
       <div className="p-5 max-w-screen-xl mx-auto">
         {/* En-tête de la page */}
@@ -282,7 +283,7 @@ const Community = () => {
         {renderContent()}
       </div>
       <Footer />
-    </>
+    </AuthGuard>
   );
 };
 

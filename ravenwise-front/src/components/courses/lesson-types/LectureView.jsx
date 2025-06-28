@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FiBookOpen, FiCheck, FiArrowRight } from 'react-icons/fi';
 
 const LectureView = ({ lesson, onComplete, isCompleted }) => {
   const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false);
+  const contentRef = useRef(null);
 
   // Fonction pour détecter si l'utilisateur a fait défiler jusqu'à la fin
   const handleScroll = (e) => {
@@ -15,6 +16,18 @@ const LectureView = ({ lesson, onComplete, isCompleted }) => {
       setHasScrolledToEnd(true);
     }
   };
+
+  // Vérifier si le contenu nécessite un scroll ou est assez court pour être lu d'un coup
+  useEffect(() => {
+    if (contentRef.current) {
+      const { scrollHeight, clientHeight } = contentRef.current;
+      // Si le contenu est plus petit que le conteneur (pas de scroll nécessaire), 
+      // on considère qu'il a été "lu" automatiquement
+      if (scrollHeight <= clientHeight + 10) { // +10 pour une petite marge
+        setHasScrolledToEnd(true);
+      }
+    }
+  }, [lesson]); // Se déclenche quand le contenu de la leçon change
 
   // Pour déboguer - vérifier ce que contient lesson
   console.log("Contenu de la leçon:", lesson);
@@ -35,6 +48,7 @@ const LectureView = ({ lesson, onComplete, isCompleted }) => {
       {/* Contenu de lecture */}
       <div className="bg-[#182b4a] rounded-xl shadow-lg">
         <div 
+          ref={contentRef}
           className="prose prose-invert max-w-none p-8 overflow-y-auto max-h-[70vh]"
           onScroll={handleScroll}
           style={{
@@ -81,10 +95,10 @@ const LectureView = ({ lesson, onComplete, isCompleted }) => {
               onClick={onComplete}
               disabled={!hasScrolledToEnd && !isCompleted}
               className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-                hasScrolledToEnd && !isCompleted
-                  ? 'bg-[#FDC758] text-[#0F1B2A] hover:bg-opacity-90'
-                  : isCompleted
-                    ? 'bg-green-600 text-white cursor-default'
+                isCompleted
+                  ? 'bg-green-600 text-white cursor-default'
+                  : hasScrolledToEnd
+                    ? 'bg-[#FDC758] text-[#0F1B2A] hover:bg-opacity-90'
                     : 'bg-gray-600 text-gray-400 cursor-not-allowed'
               }`}
             >

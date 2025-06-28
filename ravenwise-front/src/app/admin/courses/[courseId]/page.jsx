@@ -4,7 +4,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { FiSave, FiArrowLeft, FiPlus, FiTrash2, FiEdit2, FiList, FiMove, FiLock, FiUnlock } from "react-icons/fi";
 import Card from "../../../../components/common/Card";
-import { courseService, chapterService, lessonService } from "../../../../services/api";
+import { courseService, chapterService, lessonService, quizzesService } from "../../../../services/api";
 
 export default function EditCoursePage() {
   const router = useRouter();
@@ -83,6 +83,13 @@ export default function EditCoursePage() {
           try {
             const chapterLessons = await lessonService.getLessonByChapterId(chapter.id);
             lessonsObj[chapter.id] = chapterLessons.sort((a, b) => a.order - b.order);
+            
+            // Log pour déboguer les IDs des leçons, notamment les quiz
+            console.log(`Chapitre ${chapter.id} - Leçons chargées:`, chapterLessons.map(lesson => ({
+              id: lesson.id,
+              title: lesson.title,
+              type: lesson.type
+            })));
           } catch (err) {
             console.warn(`Erreur lors du chargement des leçons pour le chapitre ${chapter.id}:`, err);
             lessonsObj[chapter.id] = [];
@@ -281,6 +288,10 @@ export default function EditCoursePage() {
 
   // Ouvrir le formulaire pour éditer une leçon
   const editLesson = (lesson, chapterId) => {
+    console.log("Édition de la leçon:", lesson);
+    console.log("Type de leçon:", lesson.type);
+    console.log("ID de la leçon:", lesson.id);
+    
     setLessonForm({
       title: lesson.title,
       content: lesson.content || "",
@@ -329,7 +340,100 @@ export default function EditCoursePage() {
       
       if (editingLesson) {
         // Mise à jour
-        const updatedLesson = await lessonService.updateLesson(editingLesson.id, lessonData);
+        let updatedLesson;
+        
+        if (lessonForm.type === 'quiz') {
+          // Vérifier que nous avons un ID valide pour le quiz
+          if (!editingLesson.id) {
+            alert('Erreur: ID du quiz manquant. Impossible de modifier ce quiz.');
+            return;
+          }
+          
+          // L'API PATCH /quizzes/:id attend une seule question avec ses réponses
+          // au format { question: string, answers: [{answer: string, isCorrect: boolean}] }
+          // 
+          // PROBLÈME: Notre interface permet de gérer plusieurs questions par quiz,
+          // mais l'API ne semble permettre de mettre à jour qu'une question à la fois.
+          // 
+          // Solution temporaire: Informer l'utilisateur de la limitation
+          
+          if (!lessonForm.questions || lessonForm.questions.length === 0) {
+            alert('Erreur: Aucune question définie pour ce quiz.');
+            return;
+          }
+          
+          if (lessonForm.questions.length > 1) {
+            alert('Attention: L\'API ne supporte actuellement la modification que d\'une seule question par quiz.\nSeule la première question sera sauvegardée.');
+          }
+          
+          // Prendre la première question et adapter le format
+          const firstQuestion = lessonForm.questions[0];
+          
+          // Vérifier que la question a un contenu valide
+          if (!firstQuestion.question || !firstQuestion.question.trim()) {
+            alert('Erreur: Le texte de la question ne peut pas être vide.');
+            return;
+          }
+          
+          // Vérifier que toutes les options sont remplies
+          const hasEmptyOptions = firstQuestion.options.some(option => !option || !option.trim());
+          if (hasEmptyOptions) {
+            alert('Erreur: Toutes les options de réponse doivent être remplies.');
+            return;
+          }
+          
+          const quizUpdateData = {
+            question: firstQuestion.question,
+            answers: firstQuestion.options.map((option, index) => ({
+              answer: option,
+              isCorrect: index === firstQuestion.correctOption
+            }))
+          };
+          
+          console.log("Données quiz envoyées à l'API PATCH:", quizUpdateData);
+          console.log("ID du quiz à modifier:", editingLesson.id);
+          
+          try {
+            updatedLesson = await quizzesService.updateQuiz(editingLesson.id, quizUpdateData);
+            
+            // Fusionner avec les données locales pour l'affichage
+            updatedLesson = {
+              ...editingLesson,
+              title: lessonForm.title,
+              content: lessonForm.content,
+              estimatedDuration: parseInt(lessonForm.estimatedDuration, 10),
+              questions: lessonForm.questions || [],
+              // Garder les données retournées par l'API
+              ...updatedLesson
+            };
+          } catch (apiError) {
+            console.error("Erreur API lors de la mise à jour du quiz:", apiError);
+            console.log("Status de l'erreur:", apiError.response?.status);
+            console.log("Type d'erreur:", typeof apiError.response?.status);
+            
+            // Vérifier le type d'erreur
+            if (apiError.response?.status === 404) {
+              console.log("Gestion de l'erreur 404 - Quiz non trouvé");
+              alert(`Erreur: Le quiz avec l'ID ${editingLesson.id} n'existe pas sur le serveur.\nIl est possible que ce quiz ait été créé localement et ne soit pas encore synchronisé avec l'API.\n\nLes modifications seront sauvées localement uniquement.`);
+              
+              // Sauver localement sans appel API
+              updatedLesson = {
+                ...editingLesson,
+                title: lessonForm.title,
+                content: lessonForm.content,
+                estimatedDuration: parseInt(lessonForm.estimatedDuration, 10),
+                questions: lessonForm.questions || []
+              };
+            } else {
+              console.log("Erreur API non 404, on re-throw");
+              throw apiError;
+            }
+          }
+        } else {
+          // Pour les autres types, utiliser le service lesson standard (sans questions)
+          const { questions, ...lessonDataWithoutQuestions } = lessonData;
+          updatedLesson = await lessonService.updateLesson(editingLesson.id, lessonDataWithoutQuestions);
+        }
         
         // Conserver les valeurs de l'interface utilisateur qui ne sont pas stockées via l'API
         updatedLesson.xpReward = lessonForm.xpReward;
@@ -343,7 +447,77 @@ export default function EditCoursePage() {
         }));
       } else {
         // Création
-        const newLesson = await lessonService.createLesson(lessonData);
+        let newLesson;
+        
+        if (lessonForm.type === 'quiz') {
+          // PROBLÈME: L'API POST /quizzes/with-answers attend:
+          // - Une seule question par appel (pas un tableau)
+          // - lessonId (pas chapterId)
+          // - Pas de title, content, estimatedDuration
+          //
+          // Notre interface supporte plusieurs questions, mais l'API ne le permet pas.
+          // Solution: Créer d'abord la leçon, puis ajouter la première question
+          
+          if (!lessonForm.questions || lessonForm.questions.length === 0) {
+            alert('Erreur: Aucune question définie pour ce quiz.');
+            return;
+          }
+          
+          if (lessonForm.questions.length > 1) {
+            alert('Attention: L\'API ne supporte actuellement qu\'une seule question par quiz.\nSeule la première question sera créée.');
+          }
+          
+          // Étape 1: Créer la leçon quiz de base (sans questions)
+          const lessonQuizData = {
+            title: lessonForm.title,
+            content: lessonForm.content,
+            type: lessonForm.type,
+            estimatedDuration: parseInt(lessonForm.estimatedDuration, 10),
+            chapterId: parseInt(selectedChapterId, 10)
+          };
+          
+          console.log("Création de la leçon quiz:", lessonQuizData);
+          const createdLesson = await lessonService.createLesson(lessonQuizData);
+          
+          // Étape 2: Ajouter la première question via l'API quiz
+          const firstQuestion = lessonForm.questions[0];
+          
+          // Vérifier que la question a un contenu valide
+          if (!firstQuestion.question || !firstQuestion.question.trim()) {
+            alert('Erreur: Le texte de la question ne peut pas être vide.');
+            return;
+          }
+          
+          // Vérifier que toutes les options sont remplies
+          const hasEmptyOptions = firstQuestion.options.some(option => !option || !option.trim());
+          if (hasEmptyOptions) {
+            alert('Erreur: Toutes les options de réponse doivent être remplies.');
+            return;
+          }
+          
+          const quizQuestionData = {
+            question: firstQuestion.question,
+            lessonId: createdLesson.id, // Utiliser l'ID de la leçon créée
+            answers: firstQuestion.options.map((option, index) => ({
+              answer: option,
+              isCorrect: index === firstQuestion.correctOption
+            }))
+          };
+          
+          console.log("Ajout de la question au quiz:", quizQuestionData);
+          const quizResponse = await quizzesService.createQuizAndAnswers(quizQuestionData);
+          
+          // Fusionner les données pour l'affichage local
+          newLesson = {
+            ...createdLesson,
+            questions: lessonForm.questions, // Garder toutes les questions pour l'affichage
+            quizId: quizResponse.id || quizResponse.quizId // Stocker l'ID du quiz pour référence future
+          };
+        } else {
+          // Pour les autres types, utiliser le service lesson standard (sans questions)
+          const { questions, ...lessonDataWithoutQuestions } = lessonData;
+          newLesson = await lessonService.createLesson(lessonDataWithoutQuestions);
+        }
         
         // Ajouter manuellement les propriétés qui ne sont pas dans l'API
         newLesson.xpReward = lessonForm.xpReward;
@@ -359,21 +533,24 @@ export default function EditCoursePage() {
       setShowLessonForm(false);
       setEditingLesson(null);
     } catch (err) {
-      console.error("Erreur lors de l'enregistrement de la leçon:", err);
-      
-      if (err.response?.data) {
-        console.log("Réponse du serveur pour la leçon:", err.response.data);
-        
-        // Afficher un message d'erreur précis
-        const errMessages = err.response.data.message;
-        const formattedError = Array.isArray(errMessages) 
-          ? errMessages.join("\n") 
-          : errMessages || "Erreur inconnue";
-        
-        alert(`Erreur lors de l'enregistrement de la leçon:\n${formattedError}`);
-      } else {
-        alert("Une erreur est survenue lors de l'enregistrement de la leçon.");
-      }
+      console.error("Erreur lors de l'enregistrement de la leçon:", err);        if (err.response?.data) {
+          console.log("Réponse du serveur pour la leçon:", err.response.data);
+          
+          // Afficher un message d'erreur précis
+          const errMessages = err.response.data.message;
+          let formattedError;
+          
+          if (Array.isArray(errMessages)) {
+            console.log("Messages d'erreur détaillés:", errMessages);
+            formattedError = errMessages.join("\n");
+          } else {
+            formattedError = errMessages || "Erreur inconnue";
+          }
+          
+          alert(`Erreur lors de l'enregistrement de la leçon:\n${formattedError}`);
+        } else {
+          alert("Une erreur est survenue lors de l'enregistrement de la leçon.");
+        }
     } finally {
       setSubmitting(false);
     }

@@ -107,75 +107,27 @@ export default function LessonPage() {
     fetchLessonData();
   }, [courseId, chapterId, lessonId]);
 
-  // Fonction pour marquer la leçon comme terminée
-  const handleLessonComplete = async () => {
+  // Fonction pour marquer la leçon comme terminée (localStorage uniquement)
+  const handleLessonComplete = () => {
     try {
-      // Strategy: Tentative d'utiliser les endpoints spécialisés de complétion s'ils existent,
-      // sinon on marque simplement comme complété côté front
-      let completionSuccess = false;
+      setIsCompleted(true);
       
-      try {
-        // Tentative d'appel API pour marquer comme terminée selon le type de leçon
-        switch (lesson.type.toLowerCase()) {
-          case 'exercice':
-          case 'exercise':
-            await exerciseService.completeExercice(lessonId);
-            break;
-          case 'quiz':
-            await quizzesService.completeQuiz(lessonId);
-            break;
-          case 'lecture':
-          default:
-            await lecturesService.completeLecture(lessonId);
-            break;
-        }
-        completionSuccess = true;
-        console.log("Leçon marquée comme terminée via l'API spécialisée");
-      } catch (apiError) {
-        // Vérifier si c'est parce que l'endpoint n'existe pas
-        if (apiError.message === 'ENDPOINT_NOT_AVAILABLE') {
-          console.warn("Endpoint de complétion spécialisé non disponible, essai de l'endpoint générique");
-          
-          // Fallback: Essayer d'utiliser l'endpoint générique de leçon si disponible
-          try {
-            await lessonService.completeLessonById(lessonId);
-            completionSuccess = true;
-            console.log("Leçon marquée comme terminée via l'API générique");
-          } catch (genericError) {
-            if (genericError.message === 'ENDPOINT_NOT_AVAILABLE') {
-              console.warn("Endpoint de complétion générique non disponible, utilisation du stockage local");
-              // Fallback final: Marquer comme complété côté front seulement
-              completionSuccess = true;
-              console.log("Leçon marquée comme terminée côté front uniquement");
-            } else {
-              throw genericError; // Re-lancer si c'est une vraie erreur
-            }
-          }
-        } else {
-          throw apiError; // Re-lancer si c'est une vraie erreur
-        }
-      }
+      // Stocker l'état de complétion dans localStorage
+      markLessonAsCompleted(lessonId, {
+        courseId,
+        chapterId,
+        lessonType: lesson.type,
+        lessonTitle: lesson.title
+      });
       
-      if (completionSuccess) {
-        setIsCompleted(true);
-        
-        // Stocker l'état de complétion dans localStorage pour persistance
-        markLessonAsCompleted(lessonId, {
-          courseId,
-          chapterId,
-          lessonType: lesson.type,
-          lessonTitle: lesson.title
-        });
-        
-        // Afficher un message de succès
-        alert("Leçon terminée avec succès!");
-        
-        // Redirection après un court délai
-        setTimeout(() => {
-          // Retour à la page du cours
-          router.push(`/courses/${courseId}`);
-        }, 1500);
-      }
+      // Afficher un message de succès
+      alert("Leçon terminée avec succès!");
+      
+      // Redirection après un court délai
+      setTimeout(() => {
+        // Retour à la page du cours
+        router.push(`/courses/${courseId}`);
+      }, 1500);
     } catch (err) {
       console.error("Erreur lors de la complétion de la leçon:", err);
       alert("Une erreur est survenue lors de la validation. Veuillez réessayer.");
